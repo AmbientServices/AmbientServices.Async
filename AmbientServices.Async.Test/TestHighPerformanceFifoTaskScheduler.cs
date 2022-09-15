@@ -92,6 +92,8 @@ namespace AmbientServices.Async.Test
             using HighPerformanceFifoTaskScheduler scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(TooManyWorkers), 10, 1, 2);
             HighPerformanceFifoTaskFactory factory = new(scheduler);
             List<Task> tasks = new();
+            // the scheduler should think the CPU is very high, so it should enter the crazy usage notify
+            mockCpu.RecentUsage = 1.0f;
             for (int i = 0; i < 20; ++i)
             {
                 FakeWork w = new(i, true);
@@ -115,6 +117,9 @@ namespace AmbientServices.Async.Test
                 tasks.Add(factory.StartNew(() => w.DoDelayOnlyWorkAsync(CancellationToken.None).AsTask(), CancellationToken.None, TaskCreationOptions.None, scheduler));
             }
             Task.WaitAll(tasks.ToArray());
+            // wait for the master thread to scale things down
+            Thread.Sleep(100);
+            // reset the scheduler
             scheduler.Reset();
         }
         [TestMethod]
@@ -132,7 +137,7 @@ namespace AmbientServices.Async.Test
             }
             Task.WaitAll(tasks.ToArray());
             // give the master thread time to scale down
-            Thread.Sleep(1000);
+            Thread.Sleep(100);
         }
         [TestMethod, ExpectedException(typeof(ExpectedException))]
         public async Task StartNewException()

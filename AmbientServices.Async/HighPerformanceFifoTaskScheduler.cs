@@ -680,7 +680,7 @@ namespace AmbientServices.Async
                                 // have we NOT already logged that we are using an insane number of threads in the past 60 minutes?
                                 int now = Environment.TickCount;
                                 int lastWarning = _highThreadsWarningTickCount;
-                                if (lastWarning == 0 || TimeElapsed(lastWarning, now) > HighThreadCountWarningEnvironmentTicks)
+                                if ((_testMode && lastWarning == 0) || TimeElapsed(lastWarning, now) > HighThreadCountWarningEnvironmentTicks)
                                 {
                                     // race to log a warning--did we win the race?
                                     if (Interlocked.CompareExchange(ref _highThreadsWarningTickCount, now, lastWarning) == lastWarning)
