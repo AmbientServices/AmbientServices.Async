@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<LangVersion>10.0</LangVersion>
+	<TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp3.1;net5.0;net6.0;</TargetFrameworks>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<Nullable>enable</Nullable>
+	<Authors>James Ivie</Authors>
+	<Company />
+	<Product>AmbientServices.Async</Product>
+	<Version>0.$([System.DateTime]::UtcNow.ToString(yyyy)).$([System.DateTime]::UtcNow.ToString(MMdd)).$([System.DateTime]::UtcNow.ToString(HHmm))</Version>
+	<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+	<Authors>James Ivie</Authors>
+	<PackageLicenseExpression>MIT</PackageLicenseExpression>
+	<Description>An MIT-licensed library containing utilities for working with async and multithreading.</Description>
+	<Copyright>2010-2022</Copyright>
+	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+	<PackageTags></PackageTags>
+	<PackageOutputPath>\\192.168.13.99\Code\NuGet\</PackageOutputPath>
+	<PackageProjectUrl>https://github.com/jamesivie/AmbientServices.Async</PackageProjectUrl>
+	<RepositoryUrl>https://github.com/jamesivie/AmbientServices.Async</RepositoryUrl>
+	<AnalysisLevel>latest</AnalysisLevel>
+	<EnableNETAnalyzers>true</EnableNETAnalyzers>
+	<AnalysisMode>AllEnabledByDefault</AnalysisMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\.editorconfig" Link=".editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AmbientServices" Version="0.8.43" />
+  </ItemGroup>
+
+</Project>
