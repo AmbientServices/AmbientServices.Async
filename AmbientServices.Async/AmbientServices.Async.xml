@@ -1,0 +1,600 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>AmbientServices.Async</name>
+    </assembly>
+    <members>
+        <member name="T:AmbientServices.Async.AA">
+            <summary>
+            A static class to hold utility functions for calling async functions in a non-async context or vice versa, especially during the transition of a code base to async/await.
+            When migrating code from sync to async, begin from the bottom off the call stack.
+            Use <see cref="M:AmbientServices.Async.AA.RunSync(System.Func{System.Threading.Tasks.ValueTask})"/> or <see cref="M:AmbientServices.Async.AA.RunTaskSync(System.Func{System.Threading.Tasks.Task})"/> at the transition from sync to async, forcing the task to run in a synchronous ambient context.
+            Use await <see cref="M:AmbientServices.Async.AA.Run(System.Func{System.Threading.Tasks.ValueTask})"/> or <see cref="M:AmbientServices.Async.AA.RunTask(System.Func{System.Threading.Tasks.Task})"/> as the default asynchronous invocation, which will run synchronously in a synchronous ambient context, and asynchronously in an asynchronous ambient context.
+            Use await <see cref="M:AmbientServices.Async.AA.RunAsync(System.Func{System.Threading.Tasks.ValueTask})"/> <see cref="M:AmbientServices.Async.AA.RunTaskAsync(System.Func{System.Threading.Tasks.Task})"/> to force asynchronous execution within a synchronous ambient context (even within <see cref="M:AmbientServices.Async.AA.RunSync(System.Func{System.Threading.Tasks.ValueTask})"/>).
+            As migration progresses, calls to <see cref="M:AmbientServices.Async.AA.RunSync(System.Func{System.Threading.Tasks.ValueTask})"/> and <see cref="M:AmbientServices.Async.AA.RunTaskSync(System.Func{System.Threading.Tasks.Task})"/> move up the call stack, being gradually replaced by calls to <see cref="M:AmbientServices.Async.AA.Run(System.Func{System.Threading.Tasks.ValueTask})"/> or <see cref="M:AmbientServices.Async.AA.RunTask(System.Func{System.Threading.Tasks.Task})"/>.
+            Calls that use await without one of these as the target will run asynchonously in a newly spawned async ambient context.
+            </summary>
+        </member>
+        <member name="P:AmbientServices.Async.AA.MultithreadedContext">
+            <summary>
+            Gets a multithreaded context to use for spawning tasks to the multithreaded context from within a synchronous context.
+            </summary>
+        </member>
+        <member name="P:AmbientServices.Async.AA.SinglethreadedContext">
+            <summary>
+            Gets the single threaded context to use for spawning tasks to be run on the current thread.
+            </summary>
+        </member>
+        <member name="P:AmbientServices.Async.AA.UsingSynchronousExecution">
+            <summary>
+            Gets whether or not the current context is using synchronous execution.
+            </summary>
+        </member>
+        <member name="M:AmbientServices.Async.AA.ConvertAggregateException(System.AggregateException)">
+            <summary>
+            Converts the specified <see cref="T:System.AggregateException"/> into the inner exception type if there is only one inner exception.
+            If there is more than one inner exception, just returns.
+            </summary>
+            <param name="ex">The <see cref="T:System.AggregateException"/></param>
+            <exception cref="T:System.ArgumentNullException">If <paramref name="ex"/> is null.</exception>
+        </member>
+        <member name="M:AmbientServices.Async.AA.RunTask(System.Func{System.Threading.Tasks.Task})">
+            <summary>
+            Runs the specified asynchronous action using the currently ambient mode.
+            </summary>
+            <param name="a">The asynchronous action to run.</param>
+        </member>
+        <member name="M:AmbientServices.Async.AA.RunTask``1(System.Func{System.Threading.Tasks.Task{``0}})">
+            <summary>
+            Runs the specified asynchronous action using the currently ambient mode.
+            </summary>
+            <param name="a">The cancelable asynchronous action to run.</param>
+        </member>
+        <member name="M:AmbientServices.Async.AA.Run(System.Func{System.Threading.Tasks.ValueTask})">
+            <summary>
+            Runs the specified asynchronous action using the currently ambient mode.
+            </summary>
+            <param name="a">The cancelable asynchronous action to run.</param>
+        </member>
+        <member name="M:AmbientServices.Async.AA.Run``1(System.Func{System.Threading.Tasks.ValueTask{``0}})">
+            <summary>
+            Runs the specified asynchronous action using the currently ambient mode.
+            </summary>
+            <param name="a">The cancelable asynchronous action to run.</param>
+        </member>
+        <member name="M:AmbientServices.Async.AA.RunTaskAsync(System.Func{System.Threading.Tasks.Task})">
+            <summary>
+            Runs the specified asynchronous action asynchronously and switches the ambient synchronization context to the asynchronous one during the operation.
+            Use this to run the action in an asynchronous ambient context, but wait on the current thread for it to finish.
+            </summary>
+            <param name="a">The asynchronous action to run.</param>
+        </member>
+        <member name="M:AmbientServices.Async.AA.RunTaskAsync``1(System.Func{System.Threading.Tasks.Task{``0}})">
+            <summary>
+            Runs the specified asynchronous action asynchronously and switches the ambient synchronization context to the asynchronous one during the operation.
+            Use this to run the action in an asynchronous ambient context, but wait on the current thread for it to finish.
+            </summary>
+            <param name="a">The cancelable asynchronous action to run.</param>
+        </member>
+        <member name="M:AmbientServices.Async.AA.RunAsync(System.Func{System.Threading.Tasks.ValueTask})">
+            <summary>
+            Runs the specified asynchronous action asynchronously and switches the ambient synchronization context to the asynchronous one during the operation.
+            Use this to run the action in an asynchronous ambient context, but wait on the current thread for it to finish.
+            </summary>
+            <param name="a">The cancelable asynchronous action to run.</param>
+        </member>
+        <member name="M:AmbientServices.Async.AA.RunAsync``1(System.Func{System.Threading.Tasks.ValueTask{``0}})">
+            <summary>
+            Runs the specified asynchronous action asynchronously and switches the ambient synchronization context to the asynchronous one during the operation.
+            Use this to run the action in an asynchronous ambient context, but wait on the current thread for it to finish.
+            </summary>
+            <param name="a">The cancelable asynchronous action to run.</param>
+        </member>
+        <member name="M:AmbientServices.Async.AA.RunTaskSync(System.Func{System.Threading.Tasks.Task})">
+            <summary>
+            Runs the specified asynchronous action synchronously on the current thread, staying on the current thread.
+            </summary>
+            <param name="a">The action to run.</param>
+        </member>
+        <member name="M:AmbientServices.Async.AA.RunTaskSync``1(System.Func{System.Threading.Tasks.Task{``0}})">
+            <summary>
+            Runs the specified asynchronous action synchronously on the current thread, staying on the current thread.
+            </summary>
+            <param name="a">The cancelable asynchronous action to run.</param>
+        </member>
+        <member name="M:AmbientServices.Async.AA.RunSync``1(System.Func{System.Threading.Tasks.ValueTask{``0}})">
+            <summary>
+            Runs the specified asynchronous action synchronously on the current thread, staying on the current thread.
+            </summary>
+            <param name="a">The cancelable asynchronous action to run.</param>
+        </member>
+        <member name="M:AmbientServices.Async.AA.RunSync(System.Func{System.Threading.Tasks.ValueTask})">
+            <summary>
+            Runs the specified asynchronous action synchronously on the current thread, staying on the current thread.
+            </summary>
+            <param name="a">The cancelable asynchronous action to run.</param>
+        </member>
+        <member name="M:AmbientServices.Async.AA.AsyncEnumerableToEnumerable``1(System.Func{System.Collections.Generic.IAsyncEnumerable{``0}},System.Threading.CancellationToken)">
+            <summary>
+            Synchronously converts an <see cref="T:System.Collections.Generic.IAsyncEnumerable`1"/> into an <see cref="T:System.Collections.Generic.IEnumerable`1"/>.
+            Works with infinite collections.
+            </summary>
+            <typeparam name="T">The type being enumerated.</typeparam>
+            <param name="funcAsyncEnumerable">A delegate that returns an <see cref="T:System.Collections.Generic.IAsyncEnumerable`1"/></param>
+            <param name="cancel">A <see cref="T:System.Threading.CancellationToken"/> which the caller can use to notify the executor to cancel the operation before it finishes.</param>
+            <returns>The <see cref="T:System.Collections.Generic.IEnumerable`1"/>.</returns>
+        </member>
+        <member name="M:AmbientServices.Async.AA.AwaitForEach``1(System.Collections.Generic.IAsyncEnumerable{``0},System.Action{``0},System.Threading.CancellationToken)">
+            <summary>
+            Iterates through the specified async enumerable using the ambient synchronicity and a synchronous delegate.
+            </summary>
+            <typeparam name="T">The type being enumerated.</typeparam>
+            <param name="asyncEnumerable">The <see cref="T:System.Collections.Generic.IAsyncEnumerable`1"/> to enumerate.</param>
+            <param name="action">The action to perform on each enumerated item.</param>
+            <param name="cancel">A <see cref="T:System.Threading.CancellationToken"/> that may be used to interrupt the enumeration.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.ValueTask"/> for the iteration.</returns>
+            <exception cref="T:System.ArgumentNullException">If <paramref name="asyncEnumerable"/> or <paramref name="action"/> are null.</exception>
+        </member>
+        <member name="M:AmbientServices.Async.AA.AwaitForEach``1(System.Collections.Generic.IAsyncEnumerable{``0},System.Func{``0,System.Threading.CancellationToken,System.Threading.Tasks.ValueTask},System.Threading.CancellationToken)">
+            <summary>
+            Iterates through the specified async enumerable using the ambient synchronicity and an asynchronous delegate.
+            </summary>
+            <typeparam name="T">The type being enumerated.</typeparam>
+            <param name="asyncEnumerable">The <see cref="T:System.Collections.Generic.IAsyncEnumerable`1"/> to enumerate.</param>
+            <param name="func">The async action to perform on each enumerated item.</param>
+            <param name="cancel">A <see cref="T:System.Threading.CancellationToken"/> that may be used to interrupt the enumeration.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.ValueTask"/> for the iteration.</returns>
+            <exception cref="T:System.ArgumentNullException">If <paramref name="asyncEnumerable"/> or <paramref name="func"/> are null.</exception>
+        </member>
+        <member name="T:AmbientServices.Async.IEnumerableExtensions">
+            <summary>
+            A static class to hold extensions to IEnumerable.
+            </summary>
+        </member>
+        <member name="M:AmbientServices.Async.IEnumerableExtensions.ToSingleItemEnumerable``1(``0)">
+            <summary>
+            Converts a single item to an enumerable.
+            </summary>
+            <typeparam name="T">The type for the item.</typeparam>
+            <param name="singleItem">The item to put into an enumerable.</param>
+            <returns>An enumerable with just <paramref name="singleItem"/> in it.</returns>
+        </member>
+        <member name="M:AmbientServices.Async.IEnumerableExtensions.ToAsyncEnumerable``1(System.Collections.Generic.IEnumerable{``0},System.Threading.CancellationToken)">
+            <summary>
+            Converts an enumerable into an async enumerable.  Works with very large (or even infinite) enumerations.
+            </summary>
+            <typeparam name="T">The type for the item.</typeparam>
+            <param name="e">The enumerable.</param>
+            <param name="cancel">A <see cref="T:System.Threading.CancellationToken"/> the caller can use to cancel the operation before it completes.</param>
+            <returns>An async enumerable with the elements from <paramref name="e"/> in it.</returns>
+        </member>
+        <member name="T:AmbientServices.Async.IEnumeratorExtensions">
+            <summary>
+            A static class to hold extensions to IEnumerable.
+            </summary>
+        </member>
+        <member name="M:AmbientServices.Async.IEnumeratorExtensions.ToAsyncEnumerable``1(System.Collections.Generic.IEnumerator{``0},System.Threading.CancellationToken)">
+            <summary>
+            Converts an enumerable into an async enumerable.  Works with very large (or even infinite) enumerations.
+            </summary>
+            <typeparam name="T">The type for the item.</typeparam>
+            <param name="e">The enumerable.</param>
+            <param name="cancel">A <see cref="T:System.Threading.CancellationToken"/> the caller can use to cancel the operation before it completes.</param>
+            <returns>An async enumerable with the elements from <paramref name="e"/> in it.</returns>
+        </member>
+        <member name="T:AmbientServices.Async.IAsyncEnumerableExtensions">
+            <summary>
+            A static class to hold extensions to IAsyncEnumerable.
+            </summary>
+        </member>
+        <member name="M:AmbientServices.Async.IAsyncEnumerableExtensions.ToListAsync``1(System.Collections.Generic.IAsyncEnumerable{``0},System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously converts an <see cref="T:System.Collections.Generic.IAsyncEnumerator`1"/> into a list.
+            Note that since it returns a list, this function does NOT work with inifinite (or even very large) enumerations.
+            </summary>
+            <typeparam name="T">The type within the list.</typeparam>
+            <param name="ae">The <see cref="T:System.Collections.Generic.IAsyncEnumerator`1"/>.</param>
+            <param name="cancel">A <see cref="T:System.Threading.CancellationToken"/> the caller can use to cancel the operation before it completes.</param>
+            <returns>A <see cref="T:System.Collections.Generic.List`1"/> containing all the items in the async enumerator.</returns>
+        </member>
+        <member name="M:AmbientServices.Async.IAsyncEnumerableExtensions.ToArrayAsync``1(System.Collections.Generic.IAsyncEnumerable{``0},System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously converts an <see cref="T:System.Collections.Generic.IAsyncEnumerable`1"/> into an array.
+            Note that since it returns a array, this function does NOT work with inifinite (or even very large) enumerations.
+            </summary>
+            <typeparam name="T">The type within the list.</typeparam>
+            <param name="ae">The <see cref="T:System.Collections.Generic.IAsyncEnumerable`1"/>.</param>
+            <param name="cancel">A <see cref="T:System.Threading.CancellationToken"/> the caller can use to cancel the operation before it completes.</param>
+            <returns>An array containing all the items in the async enumerator.</returns>
+        </member>
+        <member name="M:AmbientServices.Async.IAsyncEnumerableExtensions.ToEnumerableAsync``1(System.Collections.Generic.IAsyncEnumerable{``0},System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously converts an <see cref="T:System.Collections.Generic.IAsyncEnumerable`1"/> into an <see cref="T:System.Collections.Generic.IEnumerable`1"/>.
+            Note that since it returns a array, this function does NOT work with inifinite (or even very large) enumerations.
+            </summary>
+            <typeparam name="T">The type within the list.</typeparam>
+            <param name="ae">The <see cref="T:System.Collections.Generic.IAsyncEnumerable`1"/>.</param>
+            <param name="cancel">A <see cref="T:System.Threading.CancellationToken"/> the caller can use to cancel the operation before it completes.</param>
+            <returns>An enumeration of all the items in the async enumerator.</returns>
+        </member>
+        <member name="M:AmbientServices.Async.IAsyncEnumerableExtensions.ToSingleItemAsyncEnumerable``1(``0)">
+            <summary>
+            Converts a single item to an enumerable.
+            </summary>
+            <typeparam name="T">The type for the item.</typeparam>
+            <param name="singleItem">The item to put into an enumerable.</param>
+            <returns>An enumerable with just <paramref name="singleItem"/> in it.</returns>
+        </member>
+        <member name="T:AmbientServices.Async.IAsyncEnumeratorExtensions">
+            <summary>
+            A static class to hold extensions to IAsyncEnumerable.
+            </summary>
+        </member>
+        <member name="M:AmbientServices.Async.IAsyncEnumeratorExtensions.ToListAsync``1(System.Collections.Generic.IAsyncEnumerator{``0},System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously converts an <see cref="T:System.Collections.Generic.IAsyncEnumerable`1"/> into a list.
+            Note that since it returns a list, this function does NOT work with inifinite (or even very large) enumerations.
+            </summary>
+            <typeparam name="T">The type within the list.</typeparam>
+            <param name="ae">The <see cref="T:System.Collections.Generic.IAsyncEnumerable`1"/>.</param>
+            <param name="cancel">A <see cref="T:System.Threading.CancellationToken"/> the caller can use to cancel the operation before it completes.</param>
+            <returns>A <see cref="T:System.Collections.Generic.List`1"/> containing all the items in the async enumerator.</returns>
+        </member>
+        <member name="M:AmbientServices.Async.IAsyncEnumeratorExtensions.ToArrayAsync``1(System.Collections.Generic.IAsyncEnumerator{``0},System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously converts an <see cref="T:System.Collections.Generic.IAsyncEnumerator`1"/> into an array.
+            Note that since it returns a array, this function does NOT work with inifinite (or even very large) enumerations.
+            </summary>
+            <typeparam name="T">The type within the list.</typeparam>
+            <param name="ae">The <see cref="T:System.Collections.Generic.IAsyncEnumerator`1"/>.</param>
+            <param name="cancel">A <see cref="T:System.Threading.CancellationToken"/> the caller can use to cancel the operation before it completes.</param>
+            <returns>An array containing all the items in the async enumerator.</returns>
+        </member>
+        <member name="M:AmbientServices.Async.IAsyncEnumeratorExtensions.ToEnumerableAsync``1(System.Collections.Generic.IAsyncEnumerator{``0},System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously converts an <see cref="T:System.Collections.Generic.IAsyncEnumerator`1"/> into an <see cref="T:System.Collections.Generic.IEnumerable`1"/>.
+            Note that since it returns a array, this function does NOT work with inifinite (or even very large) enumerations.
+            </summary>
+            <typeparam name="T">The type within the list.</typeparam>
+            <param name="ae">The <see cref="T:System.Collections.Generic.IAsyncEnumerator`1"/>.</param>
+            <param name="cancel">A <see cref="T:System.Threading.CancellationToken"/> the caller can use to cancel the operation before it completes.</param>
+            <returns>An enumeration of all the items in the async enumerator.</returns>
+        </member>
+        <member name="T:AmbientServices.Async.SynchronousTaskScheduler">
+            <summary>
+            A <see cref="T:AmbientServices.Async.SynchronousTaskScheduler"/> that just runs each task immediately as it is queued.
+            </summary>
+        </member>
+        <member name="P:AmbientServices.Async.SynchronousTaskScheduler.Default">
+            <summary>
+            Gets the default instance for this singleton class.
+            </summary>
+        </member>
+        <member name="M:AmbientServices.Async.SynchronousTaskScheduler.GetScheduledTasks">
+            <summary>
+            Gets the list of scheduled tasks, which for this class, is always empty.
+            </summary>
+            <returns>An empty enumeration.</returns>
+        </member>
+        <member name="M:AmbientServices.Async.SynchronousTaskScheduler.QueueTask(System.Threading.Tasks.Task)">
+            <summary>
+            Queues the specified task, which in this case, just executes it immediately.
+            </summary>
+            <param name="task">The <see cref="T:System.Threading.Tasks.Task"/> which is to be executed.</param>
+        </member>
+        <member name="M:AmbientServices.Async.SynchronousTaskScheduler.TryExecuteTaskInline(System.Threading.Tasks.Task,System.Boolean)">
+            <summary>
+            Attempts to execute the specified task inline, which just runs the task.
+            </summary>
+            <param name="task">The <see cref="T:System.Threading.Tasks.Task"/> to be executed.</param>
+            <param name="taskWasPreviouslyQueued">Whether or not the task was previously queued.</param>
+            <returns><b>true</b>.</returns>
+        </member>
+        <member name="P:AmbientServices.Async.SynchronousTaskScheduler.MaximumConcurrencyLevel">
+            <summary>
+            Gets the maximum number of tasks that can be concurrently running under this scheduler, which is one.
+            </summary>
+        </member>
+        <member name="T:AmbientServices.Async.SynchronousSynchronizationContext">
+            <summary>
+            A <see cref="T:AmbientServices.Async.SynchronousSynchronizationContext"/> that schedules work items on the <see cref="T:AmbientServices.Async.SynchronousTaskScheduler"/>.
+            </summary>
+        </member>
+        <member name="P:AmbientServices.Async.SynchronousSynchronizationContext.Default">
+            <summary>
+            Gets the instance for this singleton class.
+            </summary>
+        </member>
+        <member name="M:AmbientServices.Async.SynchronousSynchronizationContext.Send(System.Threading.SendOrPostCallback,System.Object)">
+            <summary>
+            Synchronously posts a message.
+            </summary>
+            <param name="d">The message to post.</param>
+            <param name="state">The state to give to the post callback.</param>
+        </member>
+        <member name="M:AmbientServices.Async.SynchronousSynchronizationContext.Post(System.Threading.SendOrPostCallback,System.Object)">
+            <summary>
+            Posts a message.  The caller intended to post it asynchronously, but the whole point of this class is to do everything synchronously, so this call is synchronous.
+            </summary>
+            <param name="d">The message to post.</param>
+            <param name="state">The state to give to the post callback.</param>
+        </member>
+        <member name="M:AmbientServices.Async.SynchronousSynchronizationContext.CreateCopy">
+            <summary>
+            Creates a "copy" of this <see cref="T:AmbientServices.Async.SynchronousSynchronizationContext"/>, which in this case just returns the singleton instance because there is nothing held in memory anyway.
+            </summary>
+            <returns>The same singleton <see cref="T:AmbientServices.Async.SynchronousSynchronizationContext"/> on which we were called.</returns>
+        </member>
+        <member name="T:AmbientServices.Async.IMockCpuUsage">
+            <summary>
+            An interface that can be used to mock recent CPU usage so that code branches depending on CPU utilization can be tested.
+            </summary>
+        </member>
+        <member name="P:AmbientServices.Async.IMockCpuUsage.RecentUsage">
+            <summary>
+            Gets the value to use as the most recent CPU usage, which should be a number between 0.0 and 1.0.
+            </summary>
+        </member>
+        <member name="T:AmbientServices.Async.CpuMonitor">
+            <summary>
+            A class that monitors process CPU utilization.
+            </summary>
+        </member>
+        <member name="M:AmbientServices.Async.CpuMonitor.#ctor(System.Int64,AmbientServices.Async.IMockCpuUsage)">
+            <summary>
+            Constructs a system CPU usage monitor.
+            </summary>
+            <param name="windowMilliseconds">The minimum number of milliseconds to wait before computing a new usage metric (more frequent queries will return the same value).</param>
+            <param name="mock">A <see cref="T:AmbientServices.Async.IMockCpuUsage"/> to use for the CPU utilization rather than the actual CPU utilization.</param>
+        </member>
+        <member name="M:AmbientServices.Async.CpuMonitor.#ctor(System.TimeSpan,AmbientServices.Async.IMockCpuUsage)">
+            <summary>
+            Constructs a system CPU usage monitor.
+            </summary>
+            <param name="windowSize">A <see cref="T:System.TimeSpan"/> indicating the minimum sampling window size.</param>
+            <param name="mock">A <see cref="T:AmbientServices.Async.IMockCpuUsage"/> to use for the CPU utilization rather than the actual CPU utilization.</param>
+        </member>
+        <member name="P:AmbientServices.Async.CpuMonitor.RecentUsage">
+            <summary>
+            Gets the proportion of time the CPU was in use (average across all CPUs) in the previous measurement window, which will be at least the minimum window specified in the constructor.
+            </summary>
+        </member>
+        <member name="T:AmbientServices.Async.HighPerformanceFifoTaskFactory">
+            <summary>
+            A <see cref="T:System.Threading.Tasks.TaskFactory"/> that uses the <see cref="T:AmbientServices.Async.HighPerformanceFifoTaskScheduler"/> to schedule tasks.
+            </summary>
+        </member>
+        <member name="P:AmbientServices.Async.HighPerformanceFifoTaskFactory.Default">
+            <summary>
+            Gets the default <see cref="T:AmbientServices.Async.HighPerformanceFifoTaskFactory"/>.
+            </summary>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskFactory.#ctor">
+            <summary>
+            Constructs a <see cref="T:System.Threading.Tasks.TaskFactory"/> that uses the <see cref="P:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Default"/> task scheduler.
+            </summary>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskFactory.#ctor(System.Threading.CancellationToken)">
+            <summary>
+            Initializes a <see cref="T:AmbientServices.Async.HighPerformanceFifoTaskFactory"/> instance with the specified configuration.
+            </summary>
+            <param name="cancellationToken">The default <see cref="T:System.Threading.CancellationToken"/> to use for tasks that are started without an explicit <see cref="T:System.Threading.CancellationToken"/>.</param>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskFactory.#ctor(AmbientServices.Async.HighPerformanceFifoTaskScheduler)">
+            <summary>
+            Initializes a <see cref="T:AmbientServices.Async.HighPerformanceFifoTaskFactory"/> instance with the specified configuration.
+            </summary>
+            <param name="scheduler">The default <see cref="T:AmbientServices.Async.HighPerformanceFifoTaskScheduler"/> to use.</param>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskFactory.#ctor(System.Threading.Tasks.TaskCreationOptions,System.Threading.Tasks.TaskContinuationOptions)">
+            <summary>
+            Initializes a <see cref="T:AmbientServices.Async.HighPerformanceFifoTaskFactory"/> instance with the specified configuration.
+            </summary>
+            <param name="creationOptions">A set of <see cref="T:System.Threading.Tasks.TaskCreationOptions"/> controlling task creation.</param>
+            <param name="continuationOptions">A set of <see cref="T:System.Threading.Tasks.TaskContinuationOptions"/> controlling task continuations.</param>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskFactory.#ctor(System.Threading.CancellationToken,System.Threading.Tasks.TaskCreationOptions,System.Threading.Tasks.TaskContinuationOptions,AmbientServices.Async.HighPerformanceFifoTaskScheduler)">
+            <summary>
+            Initializes a <see cref="T:AmbientServices.Async.HighPerformanceFifoTaskFactory"/> instance with the specified configuration.
+            </summary>
+            <param name="cancellationToken">The default <see cref="T:System.Threading.CancellationToken"/> to use for tasks that are started without an explicit <see cref="T:System.Threading.CancellationToken"/>.</param>
+            <param name="creationOptions">A set of <see cref="T:System.Threading.Tasks.TaskCreationOptions"/> controlling task creation.</param>
+            <param name="continuationOptions">A set of <see cref="T:System.Threading.Tasks.TaskContinuationOptions"/> controlling task continuations.</param>
+            <param name="scheduler">The default <see cref="T:AmbientServices.Async.HighPerformanceFifoTaskScheduler"/> to use.</param>
+        </member>
+        <member name="T:AmbientServices.Async.HighPerformanceFifoSynchronizationContext">
+            <summary>
+            A <see cref="T:System.Threading.SynchronizationContext"/> that schedules work items on the <see cref="T:AmbientServices.Async.HighPerformanceFifoTaskScheduler"/>.
+            </summary>
+        </member>
+        <member name="P:AmbientServices.Async.HighPerformanceFifoSynchronizationContext.Default">
+            <summary>
+            Gets the instance for this singleton class.
+            </summary>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoSynchronizationContext.Send(System.Threading.SendOrPostCallback,System.Object)">
+            <summary>
+            Synchronously posts a message.
+            </summary>
+            <param name="d">The message to post.</param>
+            <param name="state">The state to give to the post callback.</param>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoSynchronizationContext.Post(System.Threading.SendOrPostCallback,System.Object)">
+            <summary>
+            Posts a message.
+            </summary>
+            <param name="d">The message to post.</param>
+            <param name="state">The state to give to the post callback.</param>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoSynchronizationContext.CreateCopy">
+            <summary>
+            Creates a "copy" of this <see cref="T:AmbientServices.Async.HighPerformanceFifoSynchronizationContext"/>, which in this case just returns the singleton instance because there is nothing held in memory anyway.
+            </summary>
+            <returns>The same singleton <see cref="T:AmbientServices.Async.HighPerformanceFifoSynchronizationContext"/> on which we were called.</returns>
+        </member>
+        <member name="T:AmbientServices.Async.HighPerformanceFifoWorker">
+            <summary>
+            A worker which contains a thread and various other objects needed to use the thread.  Disposes of itself when the thread is stopped.
+            </summary>
+        </member>
+        <member name="P:AmbientServices.Async.HighPerformanceFifoWorker.IsBusy">
+            <summary>
+            Gets whether or not this worker is currently executing a job.
+            </summary>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoWorker.Invoke(System.Action)">
+            <summary>
+            Schedules the specified delegate on this worker's thread and returns <b>true</b>, or returns <b>false</b> if the worker is already busy servicing another job.
+            </summary>
+            <param name="action">The action to attempt to carry out on this worker.</param>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoWorker.Stop">
+            <summary>
+            Tells the thread to stop and exit.
+            </summary>
+        </member>
+        <member name="T:AmbientServices.Async.HighPerformanceFifoTaskScheduler">
+            <summary>
+            A <see cref="T:System.Threading.Tasks.TaskScheduler"/> that is high performance and runs tasks in first-in-first-out order.
+            </summary>
+        </member>
+        <member name="P:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Default">
+            <summary>
+            Gets the default <see cref="T:AmbientServices.Async.HighPerformanceFifoTaskScheduler"/>, one with normal priorities.
+            </summary>
+        </member>
+        <member name="P:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Workers">
+            <summary>
+            Gets the current number of workers.
+            </summary>
+        </member>
+        <member name="P:AmbientServices.Async.HighPerformanceFifoTaskScheduler.BusyWorkers">
+            <summary>
+            Gets the number of currently busy workers.
+            </summary>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Stop">
+            <summary>
+            Stops the all the task schedulers by disposing of all of them.
+            </summary>
+        </member>
+        <member name="P:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Name">
+            <summary>
+            Gets the name of the scheduler.
+            </summary>
+        </member>
+        <member name="P:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Ticks">
+            <summary>
+            Gets the ticks used internally for performance tracking.
+            </summary>
+        </member>
+        <member name="P:AmbientServices.Async.HighPerformanceFifoTaskScheduler.TicksPerSecond">
+            <summary>
+            Gets the number of ticks per second used internally for performance tracking.
+            </summary>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Start(System.String,System.Threading.ThreadPriority,System.Boolean)">
+            <summary>
+            Starts a new <see cref="T:AmbientServices.Async.HighPerformanceFifoTaskScheduler"/> with the specified configuration.
+            </summary>
+            <param name="schedulerName">The name of the task scheduler (used in logging and exceptions).</param>
+            <param name="priority">The <see cref="T:System.Threading.ThreadPriority"/> for the threads that will be used ot execute the tasks.</param>
+            <param name="executeDisposalCheck">Whether or not to verify that the instance is properly disposed.</param>
+            <returns>A new <see cref="T:AmbientServices.Async.HighPerformanceFifoTaskScheduler"/> instance.</returns>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Start(System.String,System.Threading.ThreadPriority)">
+            <summary>
+            Starts a new <see cref="T:AmbientServices.Async.HighPerformanceFifoTaskScheduler"/> with the specified configuration.
+            </summary>
+            <param name="schedulerName">The name of the task scheduler (used in logging and exceptions).</param>
+            <param name="priority">The <see cref="T:System.Threading.ThreadPriority"/> for the threads that will be used ot execute the tasks.</param>
+            <returns>A new <see cref="T:AmbientServices.Async.HighPerformanceFifoTaskScheduler"/> instance.</returns>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Start(System.String,System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Starts a new <see cref="T:AmbientServices.Async.HighPerformanceFifoTaskScheduler"/> in test mode with the specified configuration.
+            </summary>
+            <param name="schedulerName">The name of the task scheduler (used in logging and exceptions).</param>
+            <param name="schedulerMasterFrequencyMilliseconds">How many milliseconds to wait each time around the master scheduler loop, ie. the frequency with which to check to see if we should alter the number of worker threads.</param>
+            <param name="bufferThreadCount">The number of threads to start with and to keep as a buffer after resetting.</param>
+            <param name="maxThreads">The maximum number of threads to use, or zero to let the system decide.</param>
+            <returns>A new <see cref="T:AmbientServices.Async.HighPerformanceFifoTaskScheduler"/> instance.</returns>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Dispose">
+            <summary>
+            Disposes of the instance.
+            </summary>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Reset">
+            <summary>
+            Tells the scheduler master thread to reset because we've just finished a massively parallel operation has finished and excess threads are no longer needed.
+            </summary>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Invoke(System.Action)">
+            <summary>
+            Runs an action asynchronously, if possible.  No assumption is made about the identity under which the action is run.
+            </summary>
+            <param name="action">The action to perform asynchronously.</param>
+            <returns><b>false</b> if no workers were available and the action ran inline and is now done, or <b>true</b> the action was given to a worker to complete asynchronously.</returns>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.GetScheduledTasks">
+            <summary>
+            Gets the list of scheduled tasks.  In this case, this is always empty, as all tasks are either executed immediately on another thread or executed inline.
+            </summary>
+            <returns>An empty enumeration.</returns>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.QueueTask(System.Threading.Tasks.Task)">
+            <summary>
+            Queues the specified task to the high performance FIFO scheduler.
+            </summary>
+            <param name="task">The <see cref="T:System.Threading.Tasks.Task"/> which is to be executed.</param>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.TryExecuteTaskInline(System.Threading.Tasks.Task,System.Boolean)">
+            <summary>
+            Attempts to execute the specified task inline.
+            </summary>
+            <param name="task">The <see cref="T:System.Threading.Tasks.Task"/> to be executed.</param>
+            <param name="taskWasPreviouslyQueued">Whether or not the task was previously queued.</param>
+            <returns>Whether or not the task ran inline.</returns>
+        </member>
+        <member name="P:AmbientServices.Async.HighPerformanceFifoTaskScheduler.MaximumConcurrencyLevel">
+            <summary>
+            Gets the maximum number of tasks that can be concurrently running under this scheduler.
+            </summary>
+        </member>
+        <member name="T:AmbientServices.Async.InterlockedSinglyLinkedList`1">
+            <summary>
+            A thread-safe intrusive stack.  All methods are thread-safe.
+            </summary>
+            <typeparam name="TYPE">The type of item to store in the stack.  Must inherit from <see cref="T:AmbientServices.Async.IntrusiveSinglyLinkedListNode"/>.</typeparam>
+        </member>
+        <member name="M:AmbientServices.Async.InterlockedSinglyLinkedList`1.#ctor">
+            <summary>
+            Constructs the list.
+            </summary>
+        </member>
+        <member name="M:AmbientServices.Async.InterlockedSinglyLinkedList`1.Push(`0)">
+            <summary>
+            Pushes the specified node onto the top of the stack.
+            </summary>
+            <param name="node">The node to push onto the top of the stack.</param>
+            <remarks>The specified node must NOT already be in another stack and must not be simultaneously added or removed by another thread.</remarks>
+        </member>
+        <member name="M:AmbientServices.Async.InterlockedSinglyLinkedList`1.Pop">
+            <summary>
+            Pops off the top node on the stack and returns it.
+            </summary>
+            <returns>The top node, or <b>null</b> if there are no items in the stack.</returns>
+        </member>
+        <member name="M:AmbientServices.Async.InterlockedSinglyLinkedList`1.Clear">
+            <summary>
+            Clear all items from the list.  May remove nodes that are added after this function starts, and items may be added before the function returns, but at some point before the call returns, the list will be empty.
+            </summary>
+        </member>
+        <member name="P:AmbientServices.Async.InterlockedSinglyLinkedList`1.Count">
+            <summary>
+            Gets the number of items in the list, which could change before if could be useful.
+            </summary>
+        </member>
+    </members>
+</doc>

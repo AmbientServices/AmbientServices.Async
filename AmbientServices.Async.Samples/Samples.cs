@@ -197,6 +197,8 @@ sealed class MyFullyAsyncClass : IDisposable
 
 
 
+namespace Tests // 2021-12-29: under net6.0 currently, tests cannot be discovered if they're not in a namespace
+{
 #region HPFTS
 /// <summary>
 /// 
@@ -205,12 +207,27 @@ sealed class MyFullyAsyncClass : IDisposable
 public class TestHighPerformanceFifoTaskScheduler
 {
     [TestMethod]
+    public void InvokeSingleFireAndForgetWork()
+    {
+        FakeWork w = new(-1, true);
+        // fire and forget the work, discarding the returned task (it may not finish running until after the test is marked as successful--sometimes this is what you want, but usually not--we're just testing it here)
+        _ = HighPerformanceFifoTaskFactory.Default.StartNew(() => w.DoMixedWorkAsync(CancellationToken.None).AsTask());
+    }
+    [TestMethod]
+    public async Task InvokeSingleWorkItem()
+    {
+        FakeWork w = new(-2, true);
+        // fire and forget the work, discarding the returned task (it may not finish running until after the test is marked as successful--sometimes this is what you want, but usually not--we're just testing it here)
+        await HighPerformanceFifoTaskFactory.Default.StartNew(() => w.DoMixedWorkAsync(CancellationToken.None).AsTask());
+    }
+    [TestMethod]
     public void StartNew()
     {
         List<Task> tasks = new();
         for (int i = 0; i < 1000; ++i)
         {
             FakeWork w = new(i, true);
+            // note the use of AsTask here because Task.WaitAll might await the resulting Task more than once (it probably doesn't, but just to be safe...)
             tasks.Add(HighPerformanceFifoTaskFactory.Default.StartNew(() => w.DoMixedWorkAsync(CancellationToken.None).AsTask()));
         }
         Task.WaitAll(tasks.ToArray());
@@ -301,5 +318,5 @@ public class FakeWork
     }
 }
 #endregion
-
+}
 
