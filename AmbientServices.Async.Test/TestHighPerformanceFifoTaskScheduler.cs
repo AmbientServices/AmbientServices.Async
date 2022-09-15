@@ -388,6 +388,5 @@ namespace AmbientServices.Async.Test
                 return ((x >> 32) | (x << 32));
             }
         }
-
     }
 }
