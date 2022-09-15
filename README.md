@@ -41,4 +41,4 @@ Contributions are welcome under the following conditions:
 5. style for code and documentation contributions remains consistent
 
 ## Status
-[![.NET](https://github.com/AmbientServices.Async/AmbientServices.Async/actions/workflows/dotnet.yml/badge.svg)](https://github.com/AmbientServices.Async/AmbientServices.Async/actions/workflows/dotnet.yml)
+[![.NET](https://github.com/AmbientServices/AmbientServices.Async/actions/workflows/dotnet.yml/badge.svg)](https://github.com/AmbientServices/AmbientServices.Async/actions/workflows/dotnet.yml)

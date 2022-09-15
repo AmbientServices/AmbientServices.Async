@@ -7,18 +7,18 @@
 	<Nullable>enable</Nullable>
 	<Authors>James Ivie</Authors>
 	<Company />
-	<Product>AmbientServices.Async</Product>
+	<Product>$(AssemblyName)</Product>
 	<Version>0.$([System.DateTime]::UtcNow.ToString(yyyy)).$([System.DateTime]::UtcNow.ToString(MMdd)).$([System.DateTime]::UtcNow.ToString(HHmm))</Version>
 	<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 	<Authors>James Ivie</Authors>
 	<PackageLicenseExpression>MIT</PackageLicenseExpression>
-	<Description>An MIT-licensed library containing utilities for working with async and multithreading.</Description>
+	<Description>An MIT-licensed library containing utilities to migrate to async and improve multithreaded async performance.</Description>
 	<Copyright>2010-2022</Copyright>
 	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	<PackageTags></PackageTags>
 	<PackageOutputPath>\\192.168.13.99\Code\NuGet\</PackageOutputPath>
-	<PackageProjectUrl>https://github.com/jamesivie/AmbientServices.Async</PackageProjectUrl>
-	<RepositoryUrl>https://github.com/jamesivie/AmbientServices.Async</RepositoryUrl>
+	<PackageProjectUrl>https://github.com/AmbientServices/AmbientServices.Async</PackageProjectUrl>
+	<RepositoryUrl>https://github.com/AmbientServices/AmbientServices.Async</RepositoryUrl>
 	<AnalysisLevel>latest</AnalysisLevel>
 	<EnableNETAnalyzers>true</EnableNETAnalyzers>
 	<AnalysisMode>AllEnabledByDefault</AnalysisMode>
