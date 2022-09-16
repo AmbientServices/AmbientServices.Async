@@ -493,13 +493,14 @@
             Gets the number of ticks per second used internally for performance tracking.
             </summary>
         </member>
-        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Start(System.String,System.Threading.ThreadPriority,System.Boolean)">
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Start(System.String,System.Threading.ThreadPriority,System.Boolean,AmbientServices.IAmbientStatistics)">
             <summary>
             Starts a new <see cref="T:AmbientServices.Async.HighPerformanceFifoTaskScheduler"/> with the specified configuration.
             </summary>
             <param name="schedulerName">The name of the task scheduler (used in logging and exceptions).</param>
             <param name="priority">The <see cref="T:System.Threading.ThreadPriority"/> for the threads that will be used ot execute the tasks.</param>
             <param name="executeDisposalCheck">Whether or not to verify that the instance is properly disposed.</param>
+            <param name="statistics">An optional <see cref="T:AmbientServices.IAmbientStatistics"/> to use for reporting statistics, if not specified or null, uses the ambient implementation.</param>
             <returns>A new <see cref="T:AmbientServices.Async.HighPerformanceFifoTaskScheduler"/> instance.</returns>
         </member>
         <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Start(System.String,System.Threading.ThreadPriority)">
@@ -510,7 +511,7 @@
             <param name="priority">The <see cref="T:System.Threading.ThreadPriority"/> for the threads that will be used ot execute the tasks.</param>
             <returns>A new <see cref="T:AmbientServices.Async.HighPerformanceFifoTaskScheduler"/> instance.</returns>
         </member>
-        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Start(System.String,System.Int32,System.Int32,System.Int32)">
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Start(System.String,System.Int32,System.Int32,System.Int32,AmbientServices.IAmbientStatistics)">
             <summary>
             Starts a new <see cref="T:AmbientServices.Async.HighPerformanceFifoTaskScheduler"/> in test mode with the specified configuration.
             </summary>
@@ -518,6 +519,7 @@
             <param name="schedulerMasterFrequencyMilliseconds">How many milliseconds to wait each time around the master scheduler loop, ie. the frequency with which to check to see if we should alter the number of worker threads.</param>
             <param name="bufferThreadCount">The number of threads to start with and to keep as a buffer after resetting.</param>
             <param name="maxThreads">The maximum number of threads to use, or zero to let the system decide.</param>
+            <param name="statistics">An optional <see cref="T:AmbientServices.IAmbientStatistics"/> to use for reporting statistics, if not specified or null, uses the ambient implementation.</param>
             <returns>A new <see cref="T:AmbientServices.Async.HighPerformanceFifoTaskScheduler"/> instance.</returns>
         </member>
         <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Dispose">

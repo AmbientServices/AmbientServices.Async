@@ -4,7 +4,7 @@ AmbientServices.Async is a .NET library that provides tools for migrating even t
 ## AA
 The static AA (AsyncAwait) class provides a way to make code async-ready little by little rather than the usual "forklift" update normally required due to the zombie virus nature of async.
 First, let's get one of my pet peeves out of the way.  Async/Await in C# is a misnomer.  There is nothing asynchronous about it.  
-The work asynchronous implies there is a time element, and async/await code does *not* alter the timing or flow of the code.  
+The d asynchronous implies there is a time element, and async/await code does *not* alter the timing or flow of the code.  
 It simply runs it on another thread.  Code running on another thread *can* run asynchronously, but async/await code does not do so.
 It is completely synchronized so that unless you're not using the await keyword with the "async" function (which is actually quite a rare thing to do), each line of code is run sequentially (ie. *synchronously*) one line at a time.
 However, that's the terminology they've used for the system, so from here on out, I will mostly ignore the reality that async is a misnomer.
@@ -12,15 +12,21 @@ However, that's the terminology they've used for the system, so from here on out
 This library provides a way to run async code in a synchronous context such that everything runs on the thread you've called it from, preventing any cross-thread issues, and allowing you to call async code from places where it's normally not allowed such as static initialization, LINQ, and overloads like ToString.
 
 This code has been successfully used to slowly transition a 100K line production web server with hundreds of thousands of monthly users to async over a period of more than a year with only minor issues due to occasional mistakes in the conversion process.
-	* Use async versions of framework and third-party code by calling the async version of the function in the empty delegate in AA.RunTaskSync or AA.RunSync instead of using await (see sample code).
-	* Replace all use of thread-affine classes such as Mutex, ReaderWriterLock, Semaphore, ThreadLocal, etc. and constructs not allowed in an async-await context (lock) to their async/await-friendly equivalents, using AA.RunTaskSync and AA.RunSync and the async versions of their APIs as appropriate.
+
+1. Use async versions of framework and third-party code by calling the async version of the function in the empty delegate in AA.RunTaskSync or AA.RunSync instead of using await (see sample code).
+2. Replace all use of thread-affine classes such as Mutex, ReaderWriterLock, Semaphore, ThreadLocal, etc. and constructs not allowed in an async-await context (lock) to their async/await-friendly equivalents (SemaphoreSlim, ReaderWriterLockSlim, SemaphoreSlim, AsyncLocal), using AA.RunTaskSync and AA.RunSync and the async versions of their APIs as appropriate.
+
 This will cause the code to use the async API, but force it so run on the calling thread.
 Next, one function at a time, starting in a function that is using AA.RunSync (for functions that return ValueTask) or AA.RunTaskSync (for functions that return Task),
-	* Get a list of all callers to the function you are ready to make async-ready and find all callers (In Visual Studio, you can right-click the function and select "View Call Hierarchy").
-	* Update the function signature to return Task or ValueTask and take a CancellationToken (if needed).  Use ValueTask unless you need to interact with other systems that don't support ValueTask, or if you need to await the result more than once (ValueTasks can only be awaited once).
-	* Change all the calls to AA.RunTaskSync to "await AA.RunTask" and all calle to AA.RunSync to "await AA.Run"
-	* Go to each of the callers and switch them to use AA.RunTaskSync or AA.RunSync, as above.
-	* Repeat these steps until all instances of AA.RunTaskSync and AA.RunSync are gone.  At some point you'll get to the top of the stack where you'll need to figure out how to get the top-level function to be async.
+
+1. Get a list of all callers to the function you are ready to make async-ready and find all callers (In Visual Studio, you can right-click the function and select "View Call Hierarchy").
+2. Update the function signature to return Task or ValueTask and take a CancellationToken (if needed).  Use ValueTask unless you need to interact with other systems that don't support ValueTask, or if you need to await the result more than once (ValueTasks can only be awaited once).
+3. Change all the calls to AA.RunTaskSync to "await AA.RunTask" and all calle to AA.RunSync to "await AA.Run"
+4. Go to each of the callers and switch them to use AA.RunTaskSync or AA.RunSync, as above.
+5. Repeat these steps until all instances of AA.RunTaskSync and AA.RunSync are gone.  At some point you'll get to the top of the stack where you'll need to figure out how to get the top-level function to be async.
+
+Note that this process does not include switching to use IAsyncEnumerable<> and IAsyncDisposable.  
+These changes can be made during the transition, but I would recommend making these changes after the above steps are complete, as these changes are much more complicated and will alter the flow of the code.
 
 Once a top-level function is converted to async, everything below will automatically switch to run asynchronously, without any change to the code.  
 (AA.RunSync sets the synchronization context to use a synchronous task scheduler, so if there are no instances of this up the call stack, that scheduler will not be used).

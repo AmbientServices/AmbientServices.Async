@@ -373,6 +373,7 @@ namespace AmbientServices.Async
         internal readonly IAmbientStatistic? SchedulerWorkersHighWaterMark;
         internal readonly IAmbientStatistic? SchedulerSlowestInvocationMilliseconds;
 
+        private readonly IAmbientStatistics? _statistics;
         private readonly string _schedulerName;
         private readonly ThreadPriority _schedulerThreadPriority;
         private readonly int _schedulerMasterFrequencyMilliseconds;
@@ -466,14 +467,15 @@ namespace AmbientServices.Async
         /// <param name="schedulerName">The name of the task scheduler (used in logging and exceptions).</param>
         /// <param name="priority">The <see cref="ThreadPriority"/> for the threads that will be used ot execute the tasks.</param>
         /// <param name="executeDisposalCheck">Whether or not to verify that the instance is properly disposed.</param>
+        /// <param name="statistics">An optional <see cref="IAmbientStatistics"/> to use for reporting statistics, if not specified or null, uses the ambient implementation.</param>
         /// <returns>A new <see cref="HighPerformanceFifoTaskScheduler"/> instance.</returns>
-        public static HighPerformanceFifoTaskScheduler Start(string schedulerName, ThreadPriority priority, bool executeDisposalCheck)
+        public static HighPerformanceFifoTaskScheduler Start(string schedulerName, ThreadPriority priority, bool executeDisposalCheck, IAmbientStatistics? statistics = null)
         {
-            HighPerformanceFifoTaskScheduler ret = new(schedulerName, priority, executeDisposalCheck);
+            HighPerformanceFifoTaskScheduler ret = new(schedulerName, priority, executeDisposalCheck, statistics);
             ret.Start();
             return ret;
         }
-        private HighPerformanceFifoTaskScheduler (string scheduler, ThreadPriority priority, bool executeDisposalCheck)
+        private HighPerformanceFifoTaskScheduler (string scheduler, ThreadPriority priority, bool executeDisposalCheck, IAmbientStatistics? statistics = null)
             : this(scheduler, priority)
         {
 #if DEBUG
@@ -500,16 +502,18 @@ namespace AmbientServices.Async
         /// <param name="schedulerMasterFrequencyMilliseconds">How many milliseconds to wait each time around the master scheduler loop, ie. the frequency with which to check to see if we should alter the number of worker threads.</param>
         /// <param name="bufferThreadCount">The number of threads to start with and to keep as a buffer after resetting.</param>
         /// <param name="maxThreads">The maximum number of threads to use, or zero to let the system decide.</param>
+        /// <param name="statistics">An optional <see cref="IAmbientStatistics"/> to use for reporting statistics, if not specified or null, uses the ambient implementation.</param>
         /// <returns>A new <see cref="HighPerformanceFifoTaskScheduler"/> instance.</returns>
-        internal static HighPerformanceFifoTaskScheduler Start(string schedulerName, int schedulerMasterFrequencyMilliseconds, int bufferThreadCount, int maxThreads)
+        internal static HighPerformanceFifoTaskScheduler Start(string schedulerName, int schedulerMasterFrequencyMilliseconds, int bufferThreadCount, int maxThreads, IAmbientStatistics? statistics = null)
         {
-            HighPerformanceFifoTaskScheduler ret = new(schedulerName, ThreadPriority.Normal, schedulerMasterFrequencyMilliseconds, bufferThreadCount, maxThreads);
+            HighPerformanceFifoTaskScheduler ret = new(schedulerName, ThreadPriority.Normal, statistics, schedulerMasterFrequencyMilliseconds, bufferThreadCount, maxThreads);
             ret.Start();
             return ret;
         }
-        private HighPerformanceFifoTaskScheduler(string schedulerName, ThreadPriority priority = ThreadPriority.Normal, int schedulerMasterFrequencyMilliseconds = 1000, int bufferThreadCount = 0, int maxThreads = 0)
+        private HighPerformanceFifoTaskScheduler(string schedulerName, ThreadPriority priority = ThreadPriority.Normal, IAmbientStatistics? statistics = null, int schedulerMasterFrequencyMilliseconds = 1000, int bufferThreadCount = 0, int maxThreads = 0)
         {
             // save the scheduler name and priority
+            _statistics = statistics ?? _AmbientStatistics.Local;
             _schedulerName = schedulerName;
             _schedulerThreadPriority = priority;
             _schedulerMasterFrequencyMilliseconds = schedulerMasterFrequencyMilliseconds;
@@ -517,16 +521,16 @@ namespace AmbientServices.Async
             _maxWorkerThreads = (maxThreads == 0) ? MaxWorkerThreads : maxThreads;
             _testMode = true;
 
-            SchedulerInvocations = _AmbientStatistics.Local?.GetOrAddStatistic(false, $"{nameof(SchedulerInvocations)}:{schedulerName}", "The total number of scheduler invocations");
-            SchedulerInvocationTime = _AmbientStatistics.Local?.GetOrAddStatistic(true, $"{nameof(SchedulerInvocationTime)}:{schedulerName}", "The total number of ticks spent doing invocations");
-            SchedulerPendingInvocations = _AmbientStatistics.Local?.GetOrAddStatistic(false, $"{nameof(SchedulerPendingInvocations)}:{schedulerName}", "The current number of pending (not yet serviced) scheduler invocations");
-            SchedulerWorkersCreated = _AmbientStatistics.Local?.GetOrAddStatistic(false, $"{nameof(SchedulerWorkersCreated)}:{schedulerName}", "The total number of scheduler workers created");
-            SchedulerWorkersRetired = _AmbientStatistics.Local?.GetOrAddStatistic(false, $"{nameof(SchedulerWorkersRetired)}:{schedulerName}", "The total number of scheduler workers retired");
-            SchedulerInlineExecutions = _AmbientStatistics.Local?.GetOrAddStatistic(false, $"{nameof(SchedulerInlineExecutions)}:{schedulerName}", "The total number of scheduler inline executions");
-            SchedulerWorkers = _AmbientStatistics.Local?.GetOrAddStatistic(false, $"{nameof(SchedulerWorkers)}:{schedulerName}", "The current number of scheduler workers");
-            SchedulerBusyWorkers = _AmbientStatistics.Local?.GetOrAddStatistic(false, $"{nameof(SchedulerBusyWorkers)}:{schedulerName}", "The current number of busy scheduler workers");
-            SchedulerWorkersHighWaterMark = _AmbientStatistics.Local?.GetOrAddStatistic(false, $"{nameof(SchedulerWorkersHighWaterMark)}:{schedulerName}", "The highest number of scheduler workers");
-            SchedulerSlowestInvocationMilliseconds = _AmbientStatistics.Local?.GetOrAddStatistic(false, $"{nameof(SchedulerSlowestInvocationMilliseconds)}:{schedulerName}", "The highest number of milliseconds required for an invocation");
+            SchedulerInvocations = _statistics?.GetOrAddStatistic(false, $"{nameof(SchedulerInvocations)}:{schedulerName}", "The total number of scheduler invocations");
+            SchedulerInvocationTime = _statistics?.GetOrAddStatistic(true, $"{nameof(SchedulerInvocationTime)}:{schedulerName}", "The total number of ticks spent doing invocations");
+            SchedulerPendingInvocations = _statistics?.GetOrAddStatistic(false, $"{nameof(SchedulerPendingInvocations)}:{schedulerName}", "The current number of pending (not yet serviced) scheduler invocations");
+            SchedulerWorkersCreated = _statistics?.GetOrAddStatistic(false, $"{nameof(SchedulerWorkersCreated)}:{schedulerName}", "The total number of scheduler workers created");
+            SchedulerWorkersRetired = _statistics?.GetOrAddStatistic(false, $"{nameof(SchedulerWorkersRetired)}:{schedulerName}", "The total number of scheduler workers retired");
+            SchedulerInlineExecutions = _statistics?.GetOrAddStatistic(false, $"{nameof(SchedulerInlineExecutions)}:{schedulerName}", "The total number of scheduler inline executions");
+            SchedulerWorkers = _statistics?.GetOrAddStatistic(false, $"{nameof(SchedulerWorkers)}:{schedulerName}", "The current number of scheduler workers");
+            SchedulerBusyWorkers = _statistics?.GetOrAddStatistic(false, $"{nameof(SchedulerBusyWorkers)}:{schedulerName}", "The current number of busy scheduler workers");
+            SchedulerWorkersHighWaterMark = _statistics?.GetOrAddStatistic(false, $"{nameof(SchedulerWorkersHighWaterMark)}:{schedulerName}", "The highest number of scheduler workers");
+            SchedulerSlowestInvocationMilliseconds = _statistics?.GetOrAddStatistic(false, $"{nameof(SchedulerSlowestInvocationMilliseconds)}:{schedulerName}", "The highest number of milliseconds required for an invocation");
 
             _schedulerMasterThread = new(new ThreadStart(SchedulerMaster)) {
                 Name = "High Performance FIFO Shceduler '" + schedulerName + "' Master",

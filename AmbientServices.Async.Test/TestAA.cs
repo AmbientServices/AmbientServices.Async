@@ -849,7 +849,7 @@ namespace AmbientServices.Async.Test
             Assert.ThrowsException<ArgumentNullException>(() =>
             {
                 foreach (var x in AA.AsyncEnumerableToEnumerable<IAsyncEnumerable<int>>(null!))
-                { 
+                {
                 }
             });
         }
@@ -861,6 +861,7 @@ namespace AmbientServices.Async.Test
             await Assert.ThrowsExceptionAsync<ArgumentNullException>(async () => await AA.AwaitForEach<int>(1.ToSingleItemAsyncEnumerable(), (Action<int>)null!));
             await Assert.ThrowsExceptionAsync<ArgumentNullException>(async () => await AA.AwaitForEach<int>(null!, (i, c) => new ValueTask()));
             await Assert.ThrowsExceptionAsync<ArgumentNullException>(async () => await AA.AwaitForEach<int>(1.ToSingleItemAsyncEnumerable(), null!));
+            await Assert.ThrowsExceptionAsync<ArgumentNullException>(async () => await ((IAsyncEnumerable<int>)null!).ToArrayAsync());
         }
 #endif
         [TestMethod]
