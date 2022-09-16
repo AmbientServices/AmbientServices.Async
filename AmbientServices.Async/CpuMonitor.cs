@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Threading;
 
-namespace AmbientServices.Async
+namespace AmbientServices.Async.Utility
 {
     /// <summary>
     /// An interface that can be used to mock recent CPU usage so that code branches depending on CPU utilization can be tested.
