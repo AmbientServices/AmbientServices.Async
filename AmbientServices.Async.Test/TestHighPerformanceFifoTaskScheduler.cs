@@ -25,7 +25,7 @@ namespace AmbientServices.Async.Test
         private static readonly AmbientService<IMockCpuUsage> MockCpu = Ambient.GetService<IMockCpuUsage>();
 
         [TestMethod]
-        public void StartNew()
+        public void RunWithStartNew()
         {
             //using IDisposable d = LoggerBackend.ScopedLocalOverride(new AmbientTraceLogger());
             List<Task> tasks = new();
@@ -51,20 +51,34 @@ namespace AmbientServices.Async.Test
             HighPerformanceFifoTaskScheduler.Default.Reset();
         }
         [TestMethod]
+        public void Run()
+        {
+            //using IDisposable d = LoggerBackend.ScopedLocalOverride(new AmbientTraceLogger());
+            using HighPerformanceFifoTaskScheduler scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(Run), ThreadPriority.Highest);
+            List<Task> tasks = new();
+            for (int i = 0; i < 1000; ++i)
+            {
+                FakeWork w = new(i, true);
+                tasks.Add(scheduler.Run(() => w.DoMixedWorkAsync(CancellationToken.None).AsTask()));
+            }
+            Task.WaitAll(tasks.ToArray());
+            scheduler.Reset();
+        }
+        [TestMethod]
         public async Task StartNewNoStats()
         {
             using IDisposable d = StatisticsBackend.ScopedLocalOverride(null);
             using HighPerformanceFifoTaskScheduler scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(StartNewNoStats), ThreadPriority.Highest);
             HighPerformanceFifoTaskFactory testFactory = new(scheduler);
             ConcurrentBag<Task> tasks = new();
-            tasks.Add(scheduler.Invoke(() => new FakeWork(-1, true).DoMixedWorkAsync(CancellationToken.None).AsTask()));       // note that we need to do mixed work here because otherwise everything runs on one or two threads
+            tasks.Add(scheduler.Run(() => new FakeWork(-1, true).DoMixedWorkAsync(CancellationToken.None).AsTask()));       // note that we need to do mixed work here because otherwise everything runs on one or two threads
             for (int i = 0; i < 100; ++i)
             {
                 FakeWork w = new(i, true);
                 tasks.Add(testFactory.StartNew(() => w.DoDelayOnlyWorkAsync(CancellationToken.None).AsTask()));
             }
             Task.WaitAll(tasks.ToArray());
-            await scheduler.Invoke(() => ValueTask.CompletedTask);
+            await scheduler.Run(() => ValueTask.CompletedTask);
             scheduler.Reset();
         }
         [TestMethod]
@@ -125,7 +139,7 @@ namespace AmbientServices.Async.Test
             for (i = 0; i < 50 && scheduler.ReadyWorkers < 3; ++i)
             {
                 FakeWork w = new(i, true);
-                tasks.Add(scheduler.Invoke(() => w.DoMixedWorkAsync(CancellationToken.None).AsTask()));       // note that we need to do mixed work here because otherwise everything runs on one or two threads
+                tasks.Add(scheduler.Run(() => w.DoMixedWorkAsync(CancellationToken.None).AsTask()));       // note that we need to do mixed work here because otherwise everything runs on one or two threads
             }
             // reset the scheduler
             scheduler.Reset();
@@ -241,9 +255,9 @@ namespace AmbientServices.Async.Test
         [TestMethod]
         public async Task InvokeException()
         {
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => HighPerformanceFifoTaskScheduler.Default.Invoke<int>(null!));
+            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => HighPerformanceFifoTaskScheduler.Default.Run<int>(null!));
             Assert.ThrowsException<ArgumentNullException>(() => HighPerformanceFifoTaskScheduler.Default.ContinueWith(null!));
-            await Assert.ThrowsExceptionAsync<ExpectedException>(() => HighPerformanceFifoTaskScheduler.Default.Invoke<int>(() => throw new ExpectedException()));
+            await Assert.ThrowsExceptionAsync<ExpectedException>(() => HighPerformanceFifoTaskScheduler.Default.Run<int>(() => throw new ExpectedException()));
         }
         [TestMethod]
         public void QueueTaskExceptions()
@@ -329,7 +343,7 @@ namespace AmbientServices.Async.Test
             {
                 scheduler?.Dispose();
             }
-            await Assert.ThrowsExceptionAsync<ObjectDisposedException>(() => scheduler.Invoke(() => ValueTask.CompletedTask));
+            await Assert.ThrowsExceptionAsync<ObjectDisposedException>(() => scheduler.Run(() => ValueTask.CompletedTask));
         }
         public void LongWait()
         {

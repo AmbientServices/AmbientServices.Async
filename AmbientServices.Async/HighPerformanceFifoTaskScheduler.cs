@@ -799,7 +799,7 @@ namespace AmbientServices.Async
         }
 
         /// <summary>
-        /// Runs an action asynchronously, if possible.
+        /// Runs an action asynchronously if possible, synchronously if there are no available worker threads.
         /// </summary>
         /// <param name="action">The action to perform asynchronously.</param>
         /// <returns><b>false</b> if no workers were available and the action ran inline and is now done, or <b>true</b> the action was given to a worker to complete asynchronously.</returns>
@@ -837,7 +837,7 @@ namespace AmbientServices.Async
         /// Runs an action asynchronously on a scheduler thread.
         /// </summary>
         /// <param name="func">The func to run asynchronously.</param>
-        public Task Invoke<T>(Func<T> func)
+        public Task Run<T>(Func<T> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
             if (Stopping) throw new ObjectDisposedException(nameof(HighPerformanceFifoTaskScheduler));
