@@ -325,36 +325,36 @@
             </summary>
             <returns>The same singleton <see cref="T:AmbientServices.Async.SynchronousSynchronizationContext"/> on which we were called.</returns>
         </member>
-        <member name="T:AmbientServices.Async.IMockCpuUsage">
+        <member name="T:AmbientServices.Async.Utility.IMockCpuUsage">
             <summary>
             An interface that can be used to mock recent CPU usage so that code branches depending on CPU utilization can be tested.
             </summary>
         </member>
-        <member name="P:AmbientServices.Async.IMockCpuUsage.RecentUsage">
+        <member name="P:AmbientServices.Async.Utility.IMockCpuUsage.RecentUsage">
             <summary>
             Gets the value to use as the most recent CPU usage, which should be a number between 0.0 and 1.0.
             </summary>
         </member>
-        <member name="T:AmbientServices.Async.CpuMonitor">
+        <member name="T:AmbientServices.Async.Utility.CpuMonitor">
             <summary>
             A class that monitors process CPU utilization.
             </summary>
         </member>
-        <member name="M:AmbientServices.Async.CpuMonitor.#ctor(System.Int64,AmbientServices.Async.IMockCpuUsage)">
+        <member name="M:AmbientServices.Async.Utility.CpuMonitor.#ctor(System.Int64,AmbientServices.Async.Utility.IMockCpuUsage)">
             <summary>
             Constructs a system CPU usage monitor.
             </summary>
             <param name="windowMilliseconds">The minimum number of milliseconds to wait before computing a new usage metric (more frequent queries will return the same value).</param>
-            <param name="mock">A <see cref="T:AmbientServices.Async.IMockCpuUsage"/> to use for the CPU utilization rather than the actual CPU utilization.</param>
+            <param name="mock">A <see cref="T:AmbientServices.Async.Utility.IMockCpuUsage"/> to use for the CPU utilization rather than the actual CPU utilization.</param>
         </member>
-        <member name="M:AmbientServices.Async.CpuMonitor.#ctor(System.TimeSpan,AmbientServices.Async.IMockCpuUsage)">
+        <member name="M:AmbientServices.Async.Utility.CpuMonitor.#ctor(System.TimeSpan,AmbientServices.Async.Utility.IMockCpuUsage)">
             <summary>
             Constructs a system CPU usage monitor.
             </summary>
             <param name="windowSize">A <see cref="T:System.TimeSpan"/> indicating the minimum sampling window size.</param>
-            <param name="mock">A <see cref="T:AmbientServices.Async.IMockCpuUsage"/> to use for the CPU utilization rather than the actual CPU utilization.</param>
+            <param name="mock">A <see cref="T:AmbientServices.Async.Utility.IMockCpuUsage"/> to use for the CPU utilization rather than the actual CPU utilization.</param>
         </member>
-        <member name="P:AmbientServices.Async.CpuMonitor.RecentUsage">
+        <member name="P:AmbientServices.Async.Utility.CpuMonitor.RecentUsage">
             <summary>
             Gets the proportion of time the CPU was in use (average across all CPUs) in the previous measurement window, which will be at least the minimum window specified in the constructor.
             </summary>
@@ -463,6 +463,21 @@
             Gets the default <see cref="T:AmbientServices.Async.HighPerformanceFifoTaskScheduler"/>, one with normal priorities.
             </summary>
         </member>
+        <member name="P:AmbientServices.Async.HighPerformanceFifoTaskScheduler.LastScaleUp">
+            <summary>
+            Gets the <see cref="T:System.DateTime"/> of the completion of the last scale up.
+            </summary>
+        </member>
+        <member name="P:AmbientServices.Async.HighPerformanceFifoTaskScheduler.LastScaleDown">
+            <summary>
+            Gets the <see cref="T:System.DateTime"/> of the completion of the last scale down.
+            </summary>
+        </member>
+        <member name="P:AmbientServices.Async.HighPerformanceFifoTaskScheduler.LastResetTime">
+            <summary>
+            Gets the <see cref="T:System.DateTime"/> of the completion of the last reset.
+            </summary>
+        </member>
         <member name="P:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Workers">
             <summary>
             Gets the current number of workers.
@@ -471,6 +486,11 @@
         <member name="P:AmbientServices.Async.HighPerformanceFifoTaskScheduler.BusyWorkers">
             <summary>
             Gets the number of currently busy workers.
+            </summary>
+        </member>
+        <member name="P:AmbientServices.Async.HighPerformanceFifoTaskScheduler.ReadyWorkers">
+            <summary>
+            Gets the number of currently ready workers.
             </summary>
         </member>
         <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Stop">
@@ -532,12 +552,18 @@
             Tells the scheduler master thread to reset because we've just finished a massively parallel operation has finished and excess threads are no longer needed.
             </summary>
         </member>
-        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Invoke(System.Action)">
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.ContinueWith(System.Action)">
             <summary>
-            Runs an action asynchronously, if possible.  No assumption is made about the identity under which the action is run.
+            Runs an action asynchronously, if possible.
             </summary>
             <param name="action">The action to perform asynchronously.</param>
             <returns><b>false</b> if no workers were available and the action ran inline and is now done, or <b>true</b> the action was given to a worker to complete asynchronously.</returns>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Invoke``1(System.Func{``0})">
+            <summary>
+            Runs an action asynchronously on a scheduler thread.
+            </summary>
+            <param name="func">The func to run asynchronously.</param>
         </member>
         <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.GetScheduledTasks">
             <summary>

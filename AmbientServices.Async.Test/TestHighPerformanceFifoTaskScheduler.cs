@@ -3,6 +3,7 @@ using AmbientServices.Async;
 using AmbientServices.Async.Utility;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -37,19 +38,33 @@ namespace AmbientServices.Async.Test
             HighPerformanceFifoTaskScheduler.Default.Reset();
         }
         [TestMethod]
-        public void StartNewNoStats()
+        public void RunInHighPerformanceFifoSynchronizationContext()
+        {
+            //using IDisposable d = LoggerBackend.ScopedLocalOverride(new AmbientTraceLogger());
+            List<Task> tasks = new();
+            for (int i = 0; i < 100; ++i)
+            {
+                FakeWork w = new(i, true);
+                tasks.Add(RunInHPContext(() => w.DoMixedWorkAsync(CancellationToken.None)));
+            }
+            Task.WaitAll(tasks.ToArray());
+            HighPerformanceFifoTaskScheduler.Default.Reset();
+        }
+        [TestMethod]
+        public async Task StartNewNoStats()
         {
             using IDisposable d = StatisticsBackend.ScopedLocalOverride(null);
             using HighPerformanceFifoTaskScheduler scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(StartNewNoStats), ThreadPriority.Highest);
             HighPerformanceFifoTaskFactory testFactory = new(scheduler);
-            List<Task> tasks = new();
+            ConcurrentBag<Task> tasks = new();
+            tasks.Add(scheduler.Invoke(() => new FakeWork(-1, true).DoMixedWorkAsync(CancellationToken.None).AsTask()));       // note that we need to do mixed work here because otherwise everything runs on one or two threads
             for (int i = 0; i < 100; ++i)
             {
                 FakeWork w = new(i, true);
                 tasks.Add(testFactory.StartNew(() => w.DoDelayOnlyWorkAsync(CancellationToken.None).AsTask()));
             }
             Task.WaitAll(tasks.ToArray());
-            scheduler.Invoke(() => { });
+            await scheduler.Invoke(() => ValueTask.CompletedTask);
             scheduler.Reset();
         }
         [TestMethod]
@@ -68,19 +83,6 @@ namespace AmbientServices.Async.Test
             testFactory = new(HighPerformanceFifoTaskScheduler.Default);
             testFactory = new(TaskCreationOptions.None, TaskContinuationOptions.None);
         }
-        [TestMethod]
-        public void RunInHighPerformanceFifoSynchronizationContext()
-        {
-            //using IDisposable d = LoggerBackend.ScopedLocalOverride(new AmbientTraceLogger());
-            List<Task> tasks = new();
-            for (int i = 0; i < 250; ++i)
-            {
-                FakeWork w = new(i, true);
-                tasks.Add(RunInHPContext(() => w.DoMixedWorkAsync(CancellationToken.None)));
-            }
-            Task.WaitAll(tasks.ToArray());
-            HighPerformanceFifoTaskScheduler.Default.Reset();
-        }
         class MockCpuUsage : IMockCpuUsage
         {
             public float RecentUsage { get; set;}
@@ -91,6 +93,8 @@ namespace AmbientServices.Async.Test
             MockCpuUsage mockCpu = new();
             using IDisposable d = MockCpu.ScopedLocalOverride(mockCpu);
             using HighPerformanceFifoTaskScheduler scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(TooManyWorkers), 10, 1, 2);
+            Assert.IsTrue(scheduler.ReadyWorkers > 0);
+            Assert.IsTrue(scheduler.BusyWorkers == 0);
             HighPerformanceFifoTaskFactory factory = new(scheduler);
             List<Task> tasks = new();
             // the scheduler should think the CPU is very high, so it should enter the crazy usage notify
@@ -104,41 +108,62 @@ namespace AmbientServices.Async.Test
             scheduler.Reset();
         }
         [TestMethod]
-        public void ResetManyWorkers()
+        public async Task ResetManyWorkers()
         {
             MockCpuUsage mockCpu = new();
             using IDisposable s = StatisticsBackend.ScopedLocalOverride(null);
             using IDisposable c = MockCpu.ScopedLocalOverride(mockCpu);
-            using HighPerformanceFifoTaskScheduler scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(ResetManyWorkers), 10, 1, 2);
-            HighPerformanceFifoTaskFactory factory = new(scheduler);
-            List<Task> tasks = new();
-            for (int i = 0; i < 20; ++i)
+            using HighPerformanceFifoTaskScheduler scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(ResetManyWorkers), 10, 1, 50);
+            DateTime lastScaleUp = scheduler.LastScaleUp;
+            Debug.Assert(DateTime.UtcNow > lastScaleUp);
+            DateTime lastScaleDown = scheduler.LastScaleDown;
+            Debug.Assert(DateTime.UtcNow > lastScaleDown);
+            DateTime lastReset = scheduler.LastResetTime;
+            Debug.Assert(DateTime.UtcNow > lastReset);
+            ConcurrentBag<Task> tasks = new();
+            int i;
+            for (i = 0; i < 50 && scheduler.ReadyWorkers < 3; ++i)
             {
                 FakeWork w = new(i, true);
-                tasks.Add(factory.StartNew(() => w.DoDelayOnlyWorkAsync(CancellationToken.None).AsTask(), CancellationToken.None, TaskCreationOptions.None, scheduler));
+                tasks.Add(scheduler.Invoke(() => w.DoMixedWorkAsync(CancellationToken.None).AsTask()));       // note that we need to do mixed work here because otherwise everything runs on one or two threads
             }
-            Task.WaitAll(tasks.ToArray());
-            // wait for the master thread to scale things down
-            Thread.Sleep(100);
             // reset the scheduler
             scheduler.Reset();
+
+            Task.WaitAll(tasks.ToArray());
+            Assert.IsTrue(scheduler.LastScaleUp > lastScaleUp, $"No scale up, threads={scheduler.Workers}");
+
+            // wait for a while for the reset to finish
+            while (scheduler.LastResetTime <= lastReset && DateTime.UtcNow < lastReset.AddSeconds(30))
+            {
+                // reset the scheduler again just in case
+                scheduler.Reset();
+                await Task.Delay(50);
+            }
+            Assert.IsTrue(scheduler.LastResetTime > lastReset, $"No reset, {scheduler.LastResetTime} vs {lastReset} vs {DateTime.UtcNow} i={i}, threads={scheduler.Workers}, readyworkers={scheduler.ReadyWorkers}, busyworkers={scheduler.BusyWorkers}");
         }
         [TestMethod]
-        public void ScaleDown()
+        public async Task ScaleDown()
         {
             MockCpuUsage mockCpu = new();
             using IDisposable d = MockCpu.ScopedLocalOverride(mockCpu);
-            using HighPerformanceFifoTaskScheduler scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(ScaleDown), 10, 1, 2);
+            using HighPerformanceFifoTaskScheduler scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(ScaleDown), 10, 4, 15);
+            DateTime lastScaleDown = scheduler.LastScaleDown;
+            Debug.Assert(DateTime.UtcNow > lastScaleDown);
             HighPerformanceFifoTaskFactory factory = new(scheduler);
             List<Task> tasks = new();
-            for (int i = 0; i < 20; ++i)
+            for (int i = 0; i < 100 && scheduler.Workers < 10; ++i)
             {
                 FakeWork w = new(i, true);
                 tasks.Add(factory.StartNew(() => w.DoDelayOnlyWorkAsync(CancellationToken.None).AsTask(), CancellationToken.None, TaskCreationOptions.None, scheduler));
             }
             Task.WaitAll(tasks.ToArray());
-            // give the master thread time to scale down
-            Thread.Sleep(100);
+            // wait for a while for the master thread to scale things down
+            while (scheduler.LastScaleDown <= lastScaleDown && DateTime.UtcNow < lastScaleDown.AddSeconds(30))
+            {
+                await Task.Delay(50);
+            }
+            Assert.IsTrue(scheduler.LastScaleDown > lastScaleDown, $"No scale down, threads={scheduler.Workers}");
         }
         [TestMethod, ExpectedException(typeof(ExpectedException))]
         public async Task StartNewException()
@@ -214,9 +239,11 @@ namespace AmbientServices.Async.Test
             Assert.AreEqual(0, tasks.Count());
         }
         [TestMethod]
-        public void InvokeException()
+        public async Task InvokeException()
         {
-            Assert.ThrowsException<ArgumentNullException>(() => HighPerformanceFifoTaskScheduler.Default.Invoke(null!));
+            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => HighPerformanceFifoTaskScheduler.Default.Invoke<int>(null!));
+            Assert.ThrowsException<ArgumentNullException>(() => HighPerformanceFifoTaskScheduler.Default.ContinueWith(null!));
+            await Assert.ThrowsExceptionAsync<ExpectedException>(() => HighPerformanceFifoTaskScheduler.Default.Invoke<int>(() => throw new ExpectedException()));
         }
         [TestMethod]
         public void QueueTaskExceptions()
@@ -281,19 +308,28 @@ namespace AmbientServices.Async.Test
             public int Value { get; set; }
         }
         [TestMethod]
-        public void Worker()
+        public async Task Worker()
         {
-            using HighPerformanceFifoTaskScheduler scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(Worker));
-            HighPerformanceFifoWorker worker = HighPerformanceFifoWorker.Start(scheduler, "1", ThreadPriority.Normal);  // the worker disposes of itself
-            worker.Invoke(LongWait);
-            Assert.IsTrue(worker.IsBusy);
-            Assert.ThrowsException<InvalidOperationException>(() => worker.Invoke(LongWait));
-            Assert.IsFalse(HighPerformanceFifoWorker.IsWorkerInternalMethod(null));
-            Assert.IsFalse(HighPerformanceFifoWorker.IsWorkerInternalMethod(typeof(TestHighPerformanceFifoTaskScheduler).GetMethod(nameof(Worker))));
-            Assert.IsTrue(HighPerformanceFifoWorker.IsWorkerInternalMethod(typeof(HighPerformanceFifoWorker).GetMethod("Invoke", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)));
-            Assert.IsTrue(HighPerformanceFifoWorker.IsWorkerInternalMethod(typeof(HighPerformanceFifoWorker).GetMethod("WorkerFunc", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)));
-            worker.Stop();
-            Assert.ThrowsException<InvalidOperationException>(() => worker.Invoke(null!));
+            HighPerformanceFifoTaskScheduler? scheduler = null;
+            try
+            {
+                scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(Worker));
+                HighPerformanceFifoWorker worker = HighPerformanceFifoWorker.Start(scheduler, "1", ThreadPriority.Normal);  // the worker disposes of itself
+                worker.Invoke(LongWait);
+                Assert.IsTrue(worker.IsBusy);
+                Assert.ThrowsException<InvalidOperationException>(() => worker.Invoke(LongWait));
+                Assert.IsFalse(HighPerformanceFifoWorker.IsWorkerInternalMethod(null));
+                Assert.IsFalse(HighPerformanceFifoWorker.IsWorkerInternalMethod(typeof(TestHighPerformanceFifoTaskScheduler).GetMethod(nameof(Worker))));
+                Assert.IsTrue(HighPerformanceFifoWorker.IsWorkerInternalMethod(typeof(HighPerformanceFifoWorker).GetMethod("Invoke", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)));
+                Assert.IsTrue(HighPerformanceFifoWorker.IsWorkerInternalMethod(typeof(HighPerformanceFifoWorker).GetMethod("WorkerFunc", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)));
+                worker.Stop();
+                Assert.ThrowsException<InvalidOperationException>(() => worker.Invoke(null!));
+            }
+            finally
+            {
+                scheduler?.Dispose();
+            }
+            await Assert.ThrowsExceptionAsync<ObjectDisposedException>(() => scheduler.Invoke(() => ValueTask.CompletedTask));
         }
         public void LongWait()
         {

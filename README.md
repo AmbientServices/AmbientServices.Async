@@ -324,7 +324,6 @@ public class FakeWork
 
 ### Other notes on performance
 Note that there are a number of other ways to invoke tasks asynchronously, but in my experience, TaskFactory.StartNew performs much better than any of the following:
-	* new Task()
 	* Task.Start
 	* ThreadPool.UnsafeQueueUserWorkItem
 	* indirect invocation using System.Timer
