@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using System.Text;
 using System.Diagnostics;
+using Microsoft.VisualStudio.TestTools.UnitTesting.Logging;
 #if NET5_0_OR_GREATER
 using System.Net.Http;
 #else
@@ -193,6 +194,86 @@ sealed class MyFullyAsyncClass : IDisposable
 #endregion
 
 
+#region LongRunningTask
+/// <summary>
+/// A class that handles a long-running task synchronously.
+/// </summary>
+public abstract class SynchronousLongRunningTask
+{
+    private int _stop;
+    private Thread _loopThread;             // note that this could also have used ThreadPool.UnsafeQueueUserWorkItem or another similar ThreadPool invoker
+
+    public SynchronousLongRunningTask()
+    {
+        _loopThread = new Thread(Loop);
+    }
+
+    public void Start()
+    {
+        _loopThread.Start();
+    }
+    public void Stop()
+    {
+        Interlocked.Exchange(ref _stop, 1);
+        _loopThread.Join();
+    }
+    public void Loop(object? state)
+    {
+        // loop until we're told to stop
+        while (_stop == 0)
+        {
+            try
+            {
+                LoopProcess();
+            }
+            catch (Exception)
+            {
+                // do something here to log the exception because this loop is important and we can't stop looping
+            }
+        }
+    }
+    protected abstract void LoopProcess();
+}
+/// <summary>
+/// A class that handles a long-running task asynchronously.
+/// </summary>
+public abstract class AsynchronousLongRunningTask
+{
+    private Task _longRunningTask;
+    private CancellationTokenSource _stop = new();
+
+    public AsynchronousLongRunningTask()
+    {
+        _longRunningTask = HighPerformanceFifoTaskScheduler.Default.Run(() => Loop(_stop.Token));
+    }
+
+    public ValueTask Start()
+    {
+        return new ValueTask();     // Note that in .NET Core, this is more elegantly expressed as ValueTask.CompletedTask
+    }
+    public async ValueTask Stop()
+    {
+        _stop.Cancel();
+        await _longRunningTask;
+    }
+    public int Loop(CancellationToken cancel)       // Note that we return an int here because we want to use the version of Run that returns a task, and there isn't one that returns a bare task
+    {
+        while (!cancel.IsCancellationRequested)
+        {
+            try
+            {
+                LoopProcess(cancel);
+            }
+            catch (Exception)
+            {
+                // do something here to log the exception because this loop is important and we can't stop looping
+            }
+        }
+        return 0;
+    }
+    protected abstract void LoopProcess(CancellationToken cancel = default);
+}
+#endregion
 
 
 
@@ -201,7 +282,7 @@ namespace Tests // 2021-12-29: under net6.0 currently, tests cannot be discovere
 {
 #region HPFTS
 /// <summary>
-/// 
+/// Unit tests for <see cref="HighPerformanceFifoTaskScheduler"/>.
 /// </summary>
 [TestClass]
 public class TestHighPerformanceFifoTaskScheduler
@@ -284,25 +365,6 @@ public class FakeWork
         Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
         //Debug.WriteLine($"Ran work {_id} on {threadName}!", "Work");
     }
-    public async ValueTask DoDelayOnlyWorkAsync(CancellationToken cancel = default)
-    {
-        ulong hash = GetHash(_id);
-        await Task.Yield();
-        //string? threadName = Thread.CurrentThread.Name;
-
-        Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
-        Stopwatch s = Stopwatch.StartNew();
-        for (int outer = 0; outer < (int)(hash % 256) && !cancel.IsCancellationRequested; ++outer)
-        {
-            Stopwatch io = Stopwatch.StartNew();
-            // simulate I/O by blocking
-            await Task.Delay((int)((hash >> 32) % (_fast ? 5UL : 500UL)), cancel);
-            io.Stop();
-            Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
-        }
-        Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
-        //Debug.WriteLine($"Ran work {_id} on {threadName}!", "Work");
-    }
     private static ulong GetHash(long id)
     {
         unchecked
@@ -318,5 +380,8 @@ public class FakeWork
     }
 }
 #endregion
+
+
+
 }
 

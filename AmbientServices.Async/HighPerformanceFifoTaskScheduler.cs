@@ -834,9 +834,11 @@ namespace AmbientServices.Async
         }
 
         /// <summary>
-        /// Runs an action asynchronously on a scheduler thread.
+        /// Runs a long-running function asynchronously on a scheduler thread.
         /// </summary>
         /// <param name="func">The func to run asynchronously.</param>
+        /// <returns>A <see cref="Task"/> which may be used to wait for the action to complete.  Presumably you want the result, or you would have used <see cref="FireAndForget(Action)"/>.</returns>
+        /// <remarks>Exceptions thrown from the function will be available to be observed through the returned <see cref="Task"/>.</remarks>
         public Task Run<T>(Func<T> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
@@ -872,6 +874,81 @@ namespace AmbientServices.Async
                 }
             });
             return tcs.Task;
+        }
+        /// <summary>
+        /// Runs a long-running action asynchronously on a scheduler thread, but gets a <see cref="Task"/> we can use wait for completion when it does finally finish or get canceled.
+        /// </summary>
+        /// <param name="action">The action to run asynchronously.</param>
+        /// <returns>A <see cref="Task"/> which may be used to wait for the function to complete after it is cancelled (or exits on its own).</returns>
+        /// <remarks>Exceptions thrown from the function will be available to be observed through the returned <see cref="Task"/>.</remarks>
+        public Task Run(Action action)
+        {
+            if (action == null) throw new ArgumentNullException(nameof(action));
+            if (Stopping) throw new ObjectDisposedException(nameof(HighPerformanceFifoTaskScheduler));
+            TaskCompletionSource<bool> tcs = new();
+            SchedulerInvocations?.Increment();
+            // try to get a ready thread
+            HighPerformanceFifoWorker? worker = _readyWorkerList.Pop();
+            // no ready workers?
+            if (worker is null)
+            {
+                // create a new worker right now, but don't put it on the ready list because we're going to use it immediately
+#pragma warning disable CA2000 // Dispose objects before losing scope (this gets put into a collection and disposed of later)
+                worker = CreateWorker();
+#pragma warning restore CA2000 // Dispose objects before losing scope
+                Debug.Assert(!worker.IsBusy);
+                // wake the master thread so it will add more threads ASAP so we don't have to do this here
+                _wakeSchedulerMasterThread.Set();
+            }
+            else
+            {
+                Debug.Assert(!worker.IsBusy);
+            }
+            worker.Invoke(() =>
+            {
+                try
+                {
+                    ExecuteAction(() => { action(); tcs.SetResult(true); });
+                }
+                catch (Exception e)
+                {
+                    tcs.SetException(e);
+                }
+            });
+            return tcs.Task;
+        }
+        /// <summary>
+        /// Runs a fire-and-forget action asynchronously on a scheduler thread.
+        /// </summary>
+        /// <param name="action">The action to run asynchronously.</param>
+        /// <remarks>Note that exceptions throw from <paramref name="action"/> will be unobserved.</remarks>
+        [SuppressMessage("Design", "CA1030:Use events where appropriate", Justification = "This should be obvious.  The prefix 'Fire' doesn't always imply something that should be an event!")]
+        public void FireAndForget(Action action)
+        {
+            if (action == null) throw new ArgumentNullException(nameof(action));
+            if (Stopping) throw new ObjectDisposedException(nameof(HighPerformanceFifoTaskScheduler));
+            SchedulerInvocations?.Increment();
+            // try to get a ready thread
+            HighPerformanceFifoWorker? worker = _readyWorkerList.Pop();
+            // no ready workers?
+            if (worker is null)
+            {
+                // create a new worker right now, but don't put it on the ready list because we're going to use it immediately
+#pragma warning disable CA2000 // Dispose objects before losing scope (this gets put into a collection and disposed of later)
+                worker = CreateWorker();
+#pragma warning restore CA2000 // Dispose objects before losing scope
+                Debug.Assert(!worker.IsBusy);
+                // wake the master thread so it will add more threads ASAP so we don't have to do this here
+                _wakeSchedulerMasterThread.Set();
+            }
+            else
+            {
+                Debug.Assert(!worker.IsBusy);
+            }
+            worker.Invoke(() =>
+            {
+                ExecuteAction(() => { action(); });
+            });
         }
         private void ExecuteAction(Action action)
         {

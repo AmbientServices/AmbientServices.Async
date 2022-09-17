@@ -554,16 +554,33 @@
         </member>
         <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.ContinueWith(System.Action)">
             <summary>
-            Runs an action asynchronously, if possible.
+            Runs an action asynchronously if possible, synchronously if there are no available worker threads.
             </summary>
             <param name="action">The action to perform asynchronously.</param>
             <returns><b>false</b> if no workers were available and the action ran inline and is now done, or <b>true</b> the action was given to a worker to complete asynchronously.</returns>
         </member>
-        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Invoke``1(System.Func{``0})">
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Run``1(System.Func{``0})">
             <summary>
-            Runs an action asynchronously on a scheduler thread.
+            Runs a long-running function asynchronously on a scheduler thread.
             </summary>
             <param name="func">The func to run asynchronously.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task"/> which may be used to wait for the action to complete.  Presumably you want the result, or you would have used <see cref="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.FireAndForget(System.Action)"/>.</returns>
+            <remarks>Exceptions thrown from the function will be available to be observed through the returned <see cref="T:System.Threading.Tasks.Task"/>.</remarks>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Run(System.Action)">
+            <summary>
+            Runs a long-running action asynchronously on a scheduler thread, but gets a <see cref="T:System.Threading.Tasks.Task"/> we can use wait for completion when it does finally finish or get canceled.
+            </summary>
+            <param name="action">The action to run asynchronously.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task"/> which may be used to wait for the function to complete after it is cancelled (or exits on its own).</returns>
+            <remarks>Exceptions thrown from the function will be available to be observed through the returned <see cref="T:System.Threading.Tasks.Task"/>.</remarks>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.FireAndForget(System.Action)">
+            <summary>
+            Runs a fire-and-forget action asynchronously on a scheduler thread.
+            </summary>
+            <param name="action">The action to run asynchronously.</param>
+            <remarks>Note that exceptions throw from <paramref name="action"/> will be unobserved.</remarks>
         </member>
         <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.GetScheduledTasks">
             <summary>
