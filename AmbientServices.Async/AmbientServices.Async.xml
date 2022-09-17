@@ -552,18 +552,32 @@
             Tells the scheduler master thread to reset because we've just finished a massively parallel operation has finished and excess threads are no longer needed.
             </summary>
         </member>
-        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.ContinueWith(System.Action)">
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.QueueWork(System.Action)">
             <summary>
-            Runs an action asynchronously if possible, synchronously if there are no available worker threads.
+            Queues synchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline (synchronously) if not.
             </summary>
-            <param name="action">The action to perform asynchronously.</param>
-            <returns><b>false</b> if no workers were available and the action ran inline and is now done, or <b>true</b> the action was given to a worker to complete asynchronously.</returns>
+            <param name="action">The action to run.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task"/> representing the work, no matter whether it was scheduled on a worker thread or run inline.</returns>
+            <remarks>Exceptions thrown from <paramref name="action"/> are placed into the returned <see cref="T:System.Threading.Tasks.Task"/>.</remarks>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.QueueWork``1(System.Func{System.Threading.Tasks.ValueTask{``0}})">
+            <summary>
+            Queues asynchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline if not.
+            </summary>
+            <typeparam name="T">The type returned by the function.</typeparam>
+            <param name="func">The asynchronous function that does the work.</param>
+        </member>
+        <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.QueueWork(System.Func{System.Threading.Tasks.ValueTask})">
+            <summary>
+            Queues asynchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline if not.
+            </summary>
+            <param name="func">The asynchronous function that does the work.</param>
         </member>
         <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.Run``1(System.Func{``0})">
             <summary>
             Runs a long-running function asynchronously on a scheduler thread.
             </summary>
-            <param name="func">The func to run asynchronously.</param>
+            <param name="func">The func to run asynchronously.  The function cannot be "async void" but may be async.  If async, this function returns a "wrapped" task.</param>
             <returns>A <see cref="T:System.Threading.Tasks.Task"/> which may be used to wait for the action to complete.  Presumably you want the result, or you would have used <see cref="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.FireAndForget(System.Action)"/>.</returns>
             <remarks>Exceptions thrown from the function will be available to be observed through the returned <see cref="T:System.Threading.Tasks.Task"/>.</remarks>
         </member>
@@ -571,7 +585,7 @@
             <summary>
             Runs a long-running action asynchronously on a scheduler thread, but gets a <see cref="T:System.Threading.Tasks.Task"/> we can use wait for completion when it does finally finish or get canceled.
             </summary>
-            <param name="action">The action to run asynchronously.</param>
+            <param name="action">The action to run asynchronously.  May be an "async void" action.</param>
             <returns>A <see cref="T:System.Threading.Tasks.Task"/> which may be used to wait for the function to complete after it is cancelled (or exits on its own).</returns>
             <remarks>Exceptions thrown from the function will be available to be observed through the returned <see cref="T:System.Threading.Tasks.Task"/>.</remarks>
         </member>
@@ -579,7 +593,7 @@
             <summary>
             Runs a fire-and-forget action asynchronously on a scheduler thread.
             </summary>
-            <param name="action">The action to run asynchronously.</param>
+            <param name="action">The action to run asynchronously.  May be an "async void" action.</param>
             <remarks>Note that exceptions throw from <paramref name="action"/> will be unobserved.</remarks>
         </member>
         <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.GetScheduledTasks">
@@ -590,7 +604,7 @@
         </member>
         <member name="M:AmbientServices.Async.HighPerformanceFifoTaskScheduler.QueueTask(System.Threading.Tasks.Task)">
             <summary>
-            Queues the specified task to the high performance FIFO scheduler.
+            Queues the specified task to the high performance FIFO scheduler, or runs it immediately if there are no workers available.
             </summary>
             <param name="task">The <see cref="T:System.Threading.Tasks.Task"/> which is to be executed.</param>
         </member>

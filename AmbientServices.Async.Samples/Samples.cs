@@ -14,6 +14,7 @@ using System.Xml;
 using System.Text;
 using System.Diagnostics;
 using Microsoft.VisualStudio.TestTools.UnitTesting.Logging;
+using System.Threading.Channels;
 #if NET5_0_OR_GREATER
 using System.Net.Http;
 #else
@@ -288,31 +289,57 @@ namespace Tests // 2021-12-29: under net6.0 currently, tests cannot be discovere
 public class TestHighPerformanceFifoTaskScheduler
 {
     [TestMethod]
-    public void InvokeSingleFireAndForgetWork()
+    public void StartFireAndForgetWork()
+    {
+        // fire and forget the work, discarding the returned task (it may not finish running until after the test is marked as successful--sometimes this is what you want, but usually not--we're just testing it here)
+        HighPerformanceFifoTaskScheduler.Default.FireAndForget(() =>
+        {
+            while (true)
+            {
+                try
+                {
+                    // do some periodic work here!
+                }
+                catch (Exception)
+                {
+                    // log exceptions here!
+                }
+                // sleep in case there was no IO above to make sure we con't consume all the CPU just spinning
+                Thread.Sleep(100);
+            }
+        });
+    }
+    [TestMethod]
+    public async Task StartLongRunningAsyncWorkAsync()
+    {
+        FakeWork w = new(-2, false);
+        // push the work over to the high performance scheduler, leaving this thread to do other async work in the mean time
+        await HighPerformanceFifoTaskScheduler.Default.Run(() => w.DoMixedWorkAsync());
+    }
+    [TestMethod]
+    public async Task QueueSingleSynchronousWorkItem()
+    {
+        // fire and forget the work, discarding the returned task (it may not finish running until after the test is marked as successful--sometimes this is what you want, but usually not--we're just testing it here)
+        await HighPerformanceFifoTaskScheduler.Default.QueueWork(() => { /* do my work here */ });
+    }
+    [TestMethod]
+    public async Task QueueSingleAsynchronousWorkItem()
     {
         FakeWork w = new(-1, true);
         // fire and forget the work, discarding the returned task (it may not finish running until after the test is marked as successful--sometimes this is what you want, but usually not--we're just testing it here)
-        _ = HighPerformanceFifoTaskFactory.Default.StartNew(() => w.DoMixedWorkAsync(CancellationToken.None).AsTask());
+        await HighPerformanceFifoTaskScheduler.Default.QueueWork(() => w.DoMixedWorkAsync());
     }
     [TestMethod]
-    public async Task InvokeSingleWorkItem()
-    {
-        FakeWork w = new(-2, true);
-        // fire and forget the work, discarding the returned task (it may not finish running until after the test is marked as successful--sometimes this is what you want, but usually not--we're just testing it here)
-        await HighPerformanceFifoTaskFactory.Default.StartNew(() => w.DoMixedWorkAsync(CancellationToken.None).AsTask());
-    }
-    [TestMethod]
-    public void StartNew()
+    public async Task StartNew()
     {
         List<Task> tasks = new();
-        for (int i = 0; i < 1000; ++i)
+        for (int i = 0; i < 100; ++i)
         {
             FakeWork w = new(i, true);
             // note the use of AsTask here because Task.WaitAll might await the resulting Task more than once (it probably doesn't, but just to be safe...)
-            tasks.Add(HighPerformanceFifoTaskFactory.Default.StartNew(() => w.DoMixedWorkAsync(CancellationToken.None).AsTask()));
+            tasks.Add(HighPerformanceFifoTaskFactory.Default.StartNew(() => w.DoMixedSyncWork()));
         }
-        Task.WaitAll(tasks.ToArray());
-        HighPerformanceFifoTaskScheduler.Default.Reset();
+        await Task.WhenAll(tasks.ToArray());
     }
 }
 public class FakeWork
@@ -325,7 +352,28 @@ public class FakeWork
         _fast = fast;
         _id = id;
     }
+    public void DoMixedSyncWork()
+    {
+        ulong hash = GetHash(_id);
 
+        Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
+        for (int outer = 0; outer < (int)(hash % 256); ++outer)
+        {
+            Stopwatch cpu = Stopwatch.StartNew();
+            CpuWork(hash);
+            cpu.Stop();
+            Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
+            Stopwatch mem = Stopwatch.StartNew();
+            MemoryWork(hash);
+            mem.Stop();
+            Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
+            Stopwatch io = Stopwatch.StartNew();
+            // simulate I/O by sleeping
+            Thread.Sleep((int)((hash >> 32) % (_fast ? 5UL : 500UL)));
+            io.Stop();
+        }
+        Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
+    }
     public async ValueTask DoMixedWorkAsync(CancellationToken cancel = default)
     {
         ulong hash = GetHash(_id);
@@ -333,27 +381,14 @@ public class FakeWork
         //string? threadName = Thread.CurrentThread.Name;
 
         Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
-        Stopwatch s = Stopwatch.StartNew();
         for (int outer = 0; outer < (int)(hash % 256) && !cancel.IsCancellationRequested; ++outer)
         {
             Stopwatch cpu = Stopwatch.StartNew();
-            // use some CPU
-            for (int spin = 0; spin < (int)((hash >> 6) % (_fast ? 16UL : 256UL)); ++spin)
-            {
-                double d1 = 0.0000000000000001;
-                double d2 = 0.0000000000000001;
-                for (int inner = 0; inner < (_fast ? 100 : 1000000); ++inner) { d2 = d1 * d2; }
-            }
+            CpuWork(hash);
             cpu.Stop();
             Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
             Stopwatch mem = Stopwatch.StartNew();
-            // use some memory
-            int bytesPerLoop = (int)((hash >> 12) % (_fast ? 10UL : 1024UL));
-            int loops = (int)((hash >> 22) % 1024);
-            for (int memory = 0; memory < loops; ++memory)
-            {
-                byte[] bytes = new byte[bytesPerLoop];
-            }
+            MemoryWork(hash);
             mem.Stop();
             Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
             Stopwatch io = Stopwatch.StartNew();
@@ -364,6 +399,26 @@ public class FakeWork
         }
         Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
         //Debug.WriteLine($"Ran work {_id} on {threadName}!", "Work");
+    }
+    private void CpuWork(ulong hash)
+    {
+        // use some CPU
+        for (int spin = 0; spin < (int)((hash >> 6) % (_fast ? 16UL : 256UL)); ++spin)
+        {
+            double d1 = 0.0000000000000001;
+            double d2 = 0.0000000000000001;
+            for (int inner = 0; inner < (_fast ? 100 : 1000000); ++inner) { d2 = d1 * d2; }
+        }
+    }
+    private void MemoryWork(ulong hash)
+    {
+        // use some memory
+        int bytesPerLoop = (int)((hash >> 12) % (_fast ? 10UL : 1024UL));
+        int loops = (int)((hash >> 22) % 1024);
+        for (int memory = 0; memory < loops; ++memory)
+        {
+            byte[] bytes = new byte[bytesPerLoop];
+        }
     }
     private static ulong GetHash(long id)
     {

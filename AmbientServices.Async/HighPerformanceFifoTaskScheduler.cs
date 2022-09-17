@@ -102,7 +102,7 @@ namespace AmbientServices.Async
         public override void Send(SendOrPostCallback d, object? state)
         {
             if (d == null) throw new ArgumentNullException(nameof(d));
-            _scheduler.ContinueWith(() => d(state));
+            _ = _scheduler.QueueWork(() => d(state));
         }
         /// <summary>
         /// Posts a message.
@@ -112,7 +112,7 @@ namespace AmbientServices.Async
         public override void Post(SendOrPostCallback d, object? state)
         {
             if (d == null) throw new ArgumentNullException(nameof(d));
-            _scheduler.ContinueWith(() => d(state));
+            _ = _scheduler.QueueWork(() => d(state));
         }
         /// <summary>
         /// Creates a "copy" of this <see cref="HighPerformanceFifoSynchronizationContext"/>, which in this case just returns the singleton instance because there is nothing held in memory anyway.
@@ -799,13 +799,15 @@ namespace AmbientServices.Async
         }
 
         /// <summary>
-        /// Runs an action asynchronously if possible, synchronously if there are no available worker threads.
+        /// Queues synchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline (synchronously) if not.
         /// </summary>
-        /// <param name="action">The action to perform asynchronously.</param>
-        /// <returns><b>false</b> if no workers were available and the action ran inline and is now done, or <b>true</b> the action was given to a worker to complete asynchronously.</returns>
-        internal bool ContinueWith(Action action)
+        /// <param name="action">The action to run.</param>
+        /// <returns>A <see cref="Task"/> representing the work, no matter whether it was scheduled on a worker thread or run inline.</returns>
+        /// <remarks>Exceptions thrown from <paramref name="action"/> are placed into the returned <see cref="Task"/>.</remarks>
+        public Task QueueWork(Action action)
         {
             if (action == null) throw new ArgumentNullException(nameof(action));
+            TaskCompletionSource<bool> tcs = new();
             SchedulerInvocations?.Increment();
             // try to get a ready thread
             HighPerformanceFifoWorker? worker = _readyWorkerList.Pop();
@@ -822,15 +824,52 @@ namespace AmbientServices.Async
                     Logger.Log($"'{_schedulerName}': no available workers--invoking inline.", "Busy", AmbientLogLevel.Warning);
                 }
                 // execute the action inline
-                ExecuteAction(action);
-                return false;
+                ExecuteActionWithTaskCompletionSource(action, tcs);
+                return tcs.Task;
             }
             else
             {
                 Debug.Assert(!worker.IsBusy);
             }
-            worker.Invoke(() => ExecuteAction(action));
-            return true;
+            worker.Invoke(() => 
+            {
+                ExecuteActionWithTaskCompletionSource(action, tcs);
+            });
+            return tcs.Task;
+        }
+        internal void ExecuteActionWithTaskCompletionSource(Action action, TaskCompletionSource<bool> tcs)
+        {
+            // execute the action inline
+            try
+            {
+                ExecuteAction(action);
+                tcs.SetResult(true);
+            }
+            catch (Exception ex)
+            {
+                tcs.SetException(ex);
+            }
+        }
+
+        /// <summary>
+        /// Queues asynchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline if not.
+        /// </summary>
+        /// <typeparam name="T">The type returned by the function.</typeparam>
+        /// <param name="func">The asynchronous function that does the work.</param>
+        public async ValueTask<T> QueueWork<T>(Func<ValueTask<T>> func)
+        {
+            if (func == null) throw new ArgumentNullException(nameof(func));
+            return await ExecuteTask(() => func()).ConfigureAwait(false);   // the whole point of this function is to possibly run the work in the HP context if there are workers available
+        }
+
+        /// <summary>
+        /// Queues asynchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline if not.
+        /// </summary>
+        /// <param name="func">The asynchronous function that does the work.</param>
+        public async ValueTask QueueWork(Func<ValueTask> func)
+        {
+            if (func == null) throw new ArgumentNullException(nameof(func));
+            await ExecuteTask(() => func()).ConfigureAwait(false);   // the whole point of this function is to possibly run the work in the HP context if there are workers available
         }
 
         /// <summary>
@@ -969,8 +1008,43 @@ namespace AmbientServices.Async
                 SynchronizationContext.SetSynchronizationContext(oldContext);
             }
         }
-        private static void RunWithHighPerformanceContext(Action action)
+        private async ValueTask<T> ExecuteTask<T>(Func<ValueTask<T>> func)
         {
+            System.Threading.SynchronizationContext? oldContext = SynchronizationContext.Current;
+            // we now have a worker that is busy
+            Interlocked.Increment(ref _busyWorkers);
+            // keep track of the maximum concurrent usage
+            InterlockedUtilities.TryOptomisticMax(ref _peakConcurrentUsageSinceLastRetirementCheck, _busyWorkers);
+            try
+            {
+                if (oldContext is not HighPerformanceFifoSynchronizationContext) SynchronizationContext.SetSynchronizationContext(HighPerformanceFifoSynchronizationContext.Default);
+                return await func().ConfigureAwait(false); // the whole point of this function is to execute the task in the hight performance synchronization context
+            }
+            finally
+            {
+                // the worker is no longer busy
+                Interlocked.Decrement(ref _busyWorkers);
+                SynchronizationContext.SetSynchronizationContext(oldContext);
+            }
+        }
+        private async ValueTask ExecuteTask(Func<ValueTask> func)
+        {
+            System.Threading.SynchronizationContext? oldContext = SynchronizationContext.Current;
+            // we now have a worker that is busy
+            Interlocked.Increment(ref _busyWorkers);
+            // keep track of the maximum concurrent usage
+            InterlockedUtilities.TryOptomisticMax(ref _peakConcurrentUsageSinceLastRetirementCheck, _busyWorkers);
+            try
+            {
+                if (oldContext is not HighPerformanceFifoSynchronizationContext) SynchronizationContext.SetSynchronizationContext(HighPerformanceFifoSynchronizationContext.Default);
+                await func().ConfigureAwait(false); // the whole point of this function is to execute the task in the hight performance synchronization context
+            }
+            finally
+            {
+                // the worker is no longer busy
+                Interlocked.Decrement(ref _busyWorkers);
+                SynchronizationContext.SetSynchronizationContext(oldContext);
+            }
         }
         internal IEnumerable<Task> GetScheduledTasksDirect()
         {
@@ -989,14 +1063,14 @@ namespace AmbientServices.Async
             QueueTask(task);
         }
         /// <summary>
-        /// Queues the specified task to the high performance FIFO scheduler.
+        /// Queues the specified task to the high performance FIFO scheduler, or runs it immediately if there are no workers available.
         /// </summary>
         /// <param name="task">The <see cref="Task"/> which is to be executed.</param>
         protected override void QueueTask(Task task)
         {
             if (task == null) throw new ArgumentNullException(nameof(task));
             if (_stopMasterThread != 0) throw new ObjectDisposedException(nameof(HighPerformanceFifoTaskScheduler));
-            ContinueWith(() =>
+            _ = QueueWork(() =>
             {
                 TryExecuteTask(task);
             });
