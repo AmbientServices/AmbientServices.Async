@@ -226,7 +226,7 @@ namespace AmbientServices.Async
             Interlocked.Exchange(ref _stop, 1);
             // worker has retired!
             _scheduler.SchedulerWorkersRetired?.Increment();
-            HighPerformanceFifoTaskScheduler.Logger.Log(DateTime.UtcNow.ToShortTimeString() + ": Retiring worker: " + _id, "StartStop", AmbientLogLevel.Debug);
+            HighPerformanceFifoTaskScheduler.Logger.Log(AmbientClock.UtcNow.ToShortTimeString() + ": Retiring worker: " + _id, "StartStop", AmbientLogLevel.Debug);
             // wake thread so it can exit gracefully
             _wakeThread.Set();
             // tell the thread it can dispose and exit
@@ -444,12 +444,12 @@ namespace AmbientServices.Async
         /// <summary>
         /// Gets the ticks used internally for performance tracking.
         /// </summary>
-        public static long Ticks => Stopwatch.GetTimestamp();
+        public static long Ticks => AmbientStopwatch.GetTimestamp();
 
         /// <summary>
         /// Gets the number of ticks per second used internally for performance tracking.
         /// </summary>
-        public static long TicksPerSecond => Stopwatch.Frequency;
+        public static long TicksPerSecond => AmbientStopwatch.Frequency;
 
         [ExcludeFromCodeCoverage]   // I've seen this throw an exception, but I have no idea how that's possible, let alone how to force it on demand
         private static int GetProcessorCount()
@@ -523,7 +523,7 @@ namespace AmbientServices.Async
             _bufferWorkerThreads = (bufferThreadCount == 0) ? BufferThreadCount : bufferThreadCount;
             _maxWorkerThreads = (maxThreads == 0) ? MaxWorkerThreads : maxThreads;
             _testMode = testMode;
-            _lastResetTime = _lastScaleDownTime = _lastScaleUpTime = DateTime.UtcNow.AddSeconds(-1).Ticks;
+            _lastResetTime = _lastScaleDownTime = _lastScaleUpTime = AmbientClock.UtcNow.AddSeconds(-1).Ticks;
 
             SchedulerInvocations = _statistics?.GetOrAddStatistic(false, $"{nameof(SchedulerInvocations)}:{schedulerName}", "The total number of scheduler invocations");
             SchedulerInvocationTime = _statistics?.GetOrAddStatistic(true, $"{nameof(SchedulerInvocationTime)}:{schedulerName}", "The total number of ticks spent doing invocations");
@@ -694,7 +694,7 @@ namespace AmbientServices.Async
                             // record that we retired threads just now
                             lastRetirementTicks = Environment.TickCount;
                             // record that we just finished a reset
-                            Interlocked.Exchange(ref _lastResetTime, DateTime.UtcNow.Ticks);
+                            Interlocked.Exchange(ref _lastResetTime, AmbientClock.UtcNow.Ticks);
                         }
                         else if (readyWorkers <= _bufferWorkerThreads)
                         {
@@ -730,7 +730,7 @@ namespace AmbientServices.Async
                                 // record the expansion time so we don't retire anything for at least a minute
                                 lastCreationTicks = Environment.TickCount;
                                 // record that we just finished a scale up
-                                Interlocked.Exchange(ref _lastScaleUpTime, DateTime.UtcNow.Ticks);
+                                Interlocked.Exchange(ref _lastScaleUpTime, AmbientClock.UtcNow.Ticks);
                             }
                             // else we *might* be able to use more workers, but the CPU is pretty high, so let's not
                         }
@@ -756,7 +756,7 @@ namespace AmbientServices.Async
                                 // reset the concurrency
                                 Interlocked.Exchange(ref _peakConcurrentUsageSinceLastRetirementCheck, 0);
                                 // record that we just finished a scale down
-                                Interlocked.Exchange(ref _lastScaleDownTime, DateTime.UtcNow.Ticks);
+                                Interlocked.Exchange(ref _lastScaleDownTime, AmbientClock.UtcNow.Ticks);
                             }
                         }
                     });
@@ -836,10 +836,10 @@ namespace AmbientServices.Async
         /// <summary>
         /// Runs a long-running function asynchronously on a scheduler thread.
         /// </summary>
-        /// <param name="func">The func to run asynchronously.</param>
+        /// <param name="func">The func to run asynchronously.  The function cannot be "async void" but may be async.  If async, this function returns a "wrapped" task.</param>
         /// <returns>A <see cref="Task"/> which may be used to wait for the action to complete.  Presumably you want the result, or you would have used <see cref="FireAndForget(Action)"/>.</returns>
         /// <remarks>Exceptions thrown from the function will be available to be observed through the returned <see cref="Task"/>.</remarks>
-        public Task Run<T>(Func<T> func)
+        public Task<T> Run<T>(Func<T> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
             if (Stopping) throw new ObjectDisposedException(nameof(HighPerformanceFifoTaskScheduler));
@@ -878,7 +878,7 @@ namespace AmbientServices.Async
         /// <summary>
         /// Runs a long-running action asynchronously on a scheduler thread, but gets a <see cref="Task"/> we can use wait for completion when it does finally finish or get canceled.
         /// </summary>
-        /// <param name="action">The action to run asynchronously.</param>
+        /// <param name="action">The action to run asynchronously.  May be an "async void" action.</param>
         /// <returns>A <see cref="Task"/> which may be used to wait for the function to complete after it is cancelled (or exits on its own).</returns>
         /// <remarks>Exceptions thrown from the function will be available to be observed through the returned <see cref="Task"/>.</remarks>
         public Task Run(Action action)
@@ -920,7 +920,7 @@ namespace AmbientServices.Async
         /// <summary>
         /// Runs a fire-and-forget action asynchronously on a scheduler thread.
         /// </summary>
-        /// <param name="action">The action to run asynchronously.</param>
+        /// <param name="action">The action to run asynchronously.  May be an "async void" action.</param>
         /// <remarks>Note that exceptions throw from <paramref name="action"/> will be unobserved.</remarks>
         [SuppressMessage("Design", "CA1030:Use events where appropriate", Justification = "This should be obvious.  The prefix 'Fire' doesn't always imply something that should be an event!")]
         public void FireAndForget(Action action)
