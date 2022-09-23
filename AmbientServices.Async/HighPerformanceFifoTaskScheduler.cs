@@ -337,7 +337,7 @@ namespace AmbientServices.Async
         private static readonly int LogicalCpuCount = GetProcessorCount();
         private static readonly int MaxWorkerThreads = LogicalCpuCount * MaxThreadsPerLogicalCpu;
         private static readonly int HighThreadCountWarningEnvironmentTicks = (int)TimeSpan.FromHours(1).Ticks;
-        private static readonly float MinAddThreadsCpuUsage = Math.Max(0.95f, 0.5f / LogicalCpuCount);
+        private static readonly float MinAddThreadsCpuUsage = Math.Max(0.95f, 1.0f - (0.5f / LogicalCpuCount));
         private static readonly CpuMonitor CpuMonitor = new(1000);
         private static readonly ConcurrentHashSet<HighPerformanceFifoTaskScheduler> Schedulers = new();
         private static readonly HighPerformanceFifoTaskScheduler DefaultTaskScheduler = HighPerformanceFifoTaskScheduler.Start("Default", ThreadPriority.Normal, false);
