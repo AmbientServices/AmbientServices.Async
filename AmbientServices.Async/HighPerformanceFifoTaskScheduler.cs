@@ -334,21 +334,14 @@ namespace AmbientServices.Async
     public sealed class HighPerformanceFifoTaskScheduler : TaskScheduler, IDisposable
     {
         private static readonly AmbientService<IAmbientStatistics> _AmbientStatistics = Ambient.GetService<IAmbientStatistics>();
+        internal static readonly AmbientLogger<HighPerformanceFifoTaskScheduler> Logger = new();
+
         private static readonly int LogicalCpuCount = GetProcessorCount();
         private static readonly int MaxWorkerThreads = LogicalCpuCount * MaxThreadsPerLogicalCpu;
         private static readonly int HighThreadCountWarningEnvironmentTicks = (int)TimeSpan.FromHours(1).Ticks;
         private static readonly float MinAddThreadsCpuUsage = Math.Max(0.95f, 1.0f - (0.5f / LogicalCpuCount));
         private static readonly CpuMonitor CpuMonitor = new(1000);
         private static readonly ConcurrentHashSet<HighPerformanceFifoTaskScheduler> Schedulers = new();
-        private static readonly HighPerformanceFifoTaskScheduler DefaultTaskScheduler = HighPerformanceFifoTaskScheduler.Start("Default", ThreadPriority.Normal, false);
-
-        internal static readonly AmbientLogger<HighPerformanceFifoTaskScheduler> Logger = new();
-
-        /// <summary>
-        /// Gets the default <see cref="HighPerformanceFifoTaskScheduler"/>, one with normal priorities.
-        /// </summary>
-        public static new HighPerformanceFifoTaskScheduler Default => DefaultTaskScheduler;
-
 
         private const float MaxCpuUsage = 0.995f;
 #if DEBUG
@@ -364,6 +357,15 @@ namespace AmbientServices.Async
         private static readonly int RetireCheckFastestRetirementFrequencyTickCount = (int)TimeSpan.FromSeconds(60).Ticks;
         private const int MaxThreadsPerLogicalCpu = 150;
 #endif
+
+        // initialize this here to be sure all the above values have been set (it uses many of them)
+        private static readonly HighPerformanceFifoTaskScheduler DefaultTaskScheduler = HighPerformanceFifoTaskScheduler.Start("Default", ThreadPriority.Normal, false);
+
+        /// <summary>
+        /// Gets the default <see cref="HighPerformanceFifoTaskScheduler"/>, one with normal priorities.
+        /// </summary>
+        public static new HighPerformanceFifoTaskScheduler Default => DefaultTaskScheduler;
+
 
         internal readonly IAmbientStatistic? SchedulerInvocations;
         internal readonly IAmbientStatistic? SchedulerInvocationTime;
