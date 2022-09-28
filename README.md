@@ -1,42 +1,61 @@
 # Overview
 AmbientServices.Async is a .NET library that provides tools for migrating even the largest, most challenging and performance-critical projects from non async/TPL code to modern .NET core async/await.
 
-## AA
-The static AA (AsyncAwait) class provides a way to make code async-ready little by little rather than the usual "forklift" update normally required due to the zombie virus nature of async. 
+## Async
+The static Async class provides a way to make code async-ready little by little rather than the usual "forklift" update normally required due to the zombie virus nature of async. 
+
 First, let's get one of my pet peeves out of the way. 
-Async/Await in C# is a misnomer. 
-There is nothing asynchronous about it. 
-The word asynchronous implies there is a time element, and async/await code does *not* alter the timing or flow of the code. 
-It simply runs it on another thread.  Code running on another thread *can* run asynchronously, but async/await code does not do so. 
-It is completely synchronized so that unless you're not using the await keyword with the "async" function (which is actually quite a rare thing to do), each line of code is run sequentially (ie. *synchronously*) one line at a time. 
-However, that's the terminology they've used for the system, so from here on out, I will mostly ignore the reality that async is a misnomer. 
+Async in C# is a misnomer, and await in C# has a bad syntax.
+There is *nothing* asynchronous about C#'s async/await it unless by asynchronous you really mean "on another thread."
+Linguistically, the word asynchronous implies the code is running "out of sync," ie. simultaneous to other code.
+In the early days of multithreaded programming, running code on another thread and running it at the same time as the code that initiated its execution were synonymous--after all, why would you run code on another thread if the execution flow was just switching from one thread to another?
+However, C# async/await code does *not* usually alter the timing or flow of the code to run at the same time as the code that invokes it, it only *possibly* runs it on another thread, and it does so for the purposes of using the initial thread for something else while an IO operation or instruction to delay execution rather than to run it simultaneous with other code.
+Code running on another thread *can* run either synchronously or asynchronously.
+Running code asynchronously, while far more complicated to control, is far more useful from a performance perspective.
+Running code synchronously but on another thread greatly simplifies the flow control over asynchronous code, but doesn't speed up execution at all (in fact is slows it down a little).
+C# async/await code may or may not run on another thread (just like non-async/await code), but it most definitely runs synchronously in nearly all normal usage. 
+It will run asynchronously if you explicitly tell the system to do that using Task.Run, which is logically identical to what happens with "new Thread" in non async/await code.
+The real difference is that when there are many execution flows, async/await code runs more efficiently because threads whose flow is paused due to IO or explicit delays can run other execution flows in the mean time, resulting in the system being able to run with fewer overall threads.
+Again, most async/await usage is completely synchronized.
+Unless you're not using the await keyword with the "async" function (which is actually quite a rare thing to do), each line of code is run sequentially (ie. *synchronously*) one line at a time. 
+There are two ways (aside from Task.Run) to get execution flows to run asynchronously, and both leave off the await keyword.
+In the first situation, you take the Task or ValueTask returned by the async code and store that somewhere and wait for it later.
+This situation is usually rare, and requires significantly more complex flow control by the developer to prevent race conditions.
+In the second situation, you just call the async code without await.
+This is a terrible idea because not only is there no way to find out if the code finished successfully, but running the code asynchronously is nearly always *not* what was intended, espcially when you're in the process of converting code from sync to async.
+For this reason (and the fact that it's invisibly discarding the output of a function), calling an async function without storing the result or using the await keyword triggers style warnings, so this type of call should always be avoided.
+This syntax for the await keyword violates my number one rule for langugages and frameworks, which is that the simple, best-practice, and most frequenly-used code styles should always be the most concise.  More complicated and dangerous coding styles should require something extra and explicit.
+The syntax for await is completely backwards in this respect.
+That combined with the misnaming of it makes the async/await syntax the worst design mistake in a major language or framework that I've seen in recent decades.
+Getting rid of the await keyword, and using a "spawn" or "fork" keyword when you actually want things to start runnning asynchronously would have been far better from a usability and design perspective.
+However, "await" is the syntax and terminology they've created, so from here on out, I will mostly ignore the reality that "async" is a misnomer and the syntax for "await" is poor design. 
 
 This library provides a way to run async code in a synchronous context such that everything runs on the thread you've called it from, preventing any cross-thread issues, and allowing you to call async code from places where it's normally not allowed such as static initialization, LINQ, and overloads like ToString. 
 
 This code has been successfully used to slowly transition a 100K line production web server with hundreds of thousands of monthly users to async over a period of more than a year with only minor issues due to occasional mistakes in the conversion process. 
 
-1. Use async versions of framework and third-party code by calling the async version of the function in the empty delegate in AA.RunTaskSync or AA.RunSync instead of using await (see sample code).
-2. Replace all use of thread-affine classes such as Mutex, ReaderWriterLock, Semaphore, ThreadLocal, etc. and constructs not allowed in an async-await context (lock) to their async/await-friendly equivalents (SemaphoreSlim, ReaderWriterLockSlim, SemaphoreSlim, AsyncLocal), using AA.RunTaskSync and AA.RunSync and the async versions of their APIs as appropriate.
+1. Use async versions of framework and third-party code by calling the async version of the function in the empty delegate in Async.RunTaskSync or Async.RunSync instead of using await (see sample code).
+2. Replace all use of thread-affine classes such as Mutex, ReaderWriterLock, Semaphore, ThreadLocal, etc. and constructs not allowed in an async-await context (lock) to their async/await-friendly equivalents (SemaphoreSlim, ReaderWriterLockSlim, SemaphoreSlim, AsyncLocal), using Async.RunTaskSync and Async.RunSync and the async versions of their APIs as appropriate.
 
 This will cause the code to use the async API, but force it so run on the calling thread. 
-Next, one function at a time, starting in a function that is using AA.RunSync (for functions that return ValueTask) or AA.RunTaskSync (for functions that return Task),
+Next, one function at a time, starting in a function that is using Async.RunSync (for functions that return ValueTask) or Async.RunTaskSync (for functions that return Task),
 
 1. Get a list of all callers to the function you are ready to make async-ready and find all callers (In Visual Studio, you can right-click the function and select "View Call Hierarchy").
 2. Update the function signature to return Task or ValueTask and take a CancellationToken (if needed).  Use ValueTask unless you need to interact with other systems that don't support ValueTask, or if you need to await the result more than once (ValueTasks can only be awaited once).
-3. Change all the calls to AA.RunTaskSync to "await AA.RunTask" and all calle to AA.RunSync to "await AA.Run"
-4. Go to each of the callers and switch them to use AA.RunTaskSync or AA.RunSync, as above.
-5. Repeat these steps until all instances of AA.RunTaskSync and AA.RunSync are gone.  At some point you'll get to the top of the stack where either you're in top-level thread function of your own creation, or you're getting called by a framework or third party an synchronous mode.  If you're being called by the framework or third-party code, there is presumably a way to be called async.  If it's a thread of yourw own making, switch the thread function from a thread to an invocation of HighPerformanceFifoThreadScheduler.Run.
+3. Change all the calls to Async.RunTaskSync to "await Async.RunTask" and all calle to Async.RunSync to "await Async.Run"
+4. Go to each of the callers and switch them to use Async.RunTaskSync or Async.RunSync, as above.
+5. Repeat these steps until all instances of Async.RunTaskSync and Async.RunSync are gone.  At some point you'll get to the top of the stack where either you're in top-level thread function of your own creation, or you're getting called by a framework or third party an synchronous mode.  If you're being called by the framework or third-party code, there is presumably a way to be called async.  If it's a thread of yourw own making, switch the thread function from a thread to an invocation of HighPerformanceFifoThreadScheduler.Run.
 
 Note that this process does not include switching to use IAsyncEnumerable<> and IAsyncDisposable. 
 These changes can be made during the transition, but I would recommend making these changes after the above steps are complete, as these changes are much more complicated and will alter the flow of the code. 
 
 Once a top-level function is converted to async, everything below will automatically switch to run asynchronously, without any change to the code. 
-(AA.RunSync sets the synchronization context to use a synchronous task scheduler, so if there are no instances of this up the call stack, that scheduler will not be used). 
-Once you're sure there are no synchronous callers firectly or indirectly calling a given function and you have no need to run any of the code synchronously, change "await AA.RunTask" and "await AA.Run" to just await like normal final-state async code. 
+(Async.RunSync sets the synchronization context to use a synchronous task scheduler, so if there are no instances of this up the call stack, that scheduler will not be used). 
+Once you're sure there are no synchronous callers firectly or indirectly calling a given function and you have no need to run any of the code synchronously, change "await Async.RunTask" and "await Async.Run" to just await like normal final-state async code. 
 The samples below show how this transition migh progress for a sample class.  Note that while we change the name of the class each time to indicate the progress of the transition, you would likely not do that. 
 
 ### Piecemeal Conversion to Async/Await
-[//]: # (AASample1)
+[//]: # (AsyncSample1)
 ```csharp
 sealed class MySoonToBeAsyncClass : IDisposable
 {
@@ -74,7 +93,7 @@ sealed class MySoonToBeAsyncClass : IDisposable
     }
 }
 ```
-[//]: # (AASample2)
+[//]: # (AsyncSample2)
 ```csharp
 sealed class MyAlmostAsyncClass : IDisposable
 {
@@ -94,14 +113,14 @@ sealed class MyAlmostAsyncClass : IDisposable
     public void WriteData(string s)
     {
         byte[] buffer = Encoding.UTF8.GetBytes(s);
-        AA.RunTaskSync(() => _file.WriteAsync(buffer, 0, buffer.Length));
+        Async.RunTaskSync(() => _file.WriteAsync(buffer, 0, buffer.Length));
     }
     /// <summary>
     /// Flushes data to the file.
     /// </summary>
     public void Flush()
     {
-        AA.RunTaskSync(() => _file.FlushAsync());
+        Async.RunTaskSync(() => _file.FlushAsync());
     }
     /// <summary>
     /// Disposes of the instance.
@@ -112,7 +131,7 @@ sealed class MyAlmostAsyncClass : IDisposable
     }
 }
 ```
-[//]: # (AASample3)
+[//]: # (AsyncSample3)
 ```csharp
 sealed class MyAsyncReadyClass : IDisposable
 {
@@ -132,14 +151,14 @@ sealed class MyAsyncReadyClass : IDisposable
     public async ValueTask WriteData(string s, CancellationToken cancel = default)
     {
         byte[] buffer = Encoding.UTF8.GetBytes(s);
-        await AA.RunTask(() => _file.WriteAsync(buffer, 0, buffer.Length, cancel));
+        await Async.RunTask(() => _file.WriteAsync(buffer, 0, buffer.Length, cancel));
     }
     /// <summary>
     /// Flushes data to the file.
     /// </summary>
     public async ValueTask Flush()
     {
-        await AA.RunTask(() => _file.FlushAsync());
+        await Async.RunTask(() => _file.FlushAsync());
     }
     /// <summary>
     /// Disposes of the instance.
@@ -150,7 +169,7 @@ sealed class MyAsyncReadyClass : IDisposable
     }
 }
 ```
-[//]: # (AASample4)
+[//]: # (AsyncSample4)
 ```csharp
 sealed class MyFullyAsyncClass : IDisposable
 {
@@ -196,7 +215,7 @@ sealed class MyFullyAsyncClass : IDisposable
 public abstract class SynchronousLongRunningTask
 {
     private int _stop;
-    private Thread _loopThread;             // note that this could also have used ThreadPool.UnsafeQueueUserWorkItem or another similar ThreadPool invoker
+    private readonly Thread _loopThread;             // note that this could also have used ThreadPool.UnsafeQueueUserWorkItem or another similar ThreadPool invoker
 
     public SynchronousLongRunningTask()
     {
@@ -234,8 +253,8 @@ public abstract class SynchronousLongRunningTask
 /// </summary>
 public abstract class AsynchronousLongRunningTask
 {
-    private Task _longRunningTask;
-    private CancellationTokenSource _stop = new();
+    private readonly Task _longRunningTask;
+    private readonly CancellationTokenSource _stop = new();
 
     public AsynchronousLongRunningTask()
     {
@@ -360,23 +379,23 @@ public class FakeWork
     {
         ulong hash = GetHash(_id);
 
-        Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
+        Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
         for (int outer = 0; outer < (int)(hash % 256); ++outer)
         {
             Stopwatch cpu = Stopwatch.StartNew();
             CpuWork(hash);
             cpu.Stop();
-            Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
+            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
             Stopwatch mem = Stopwatch.StartNew();
             MemoryWork(hash);
             mem.Stop();
-            Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
+            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
             Stopwatch io = Stopwatch.StartNew();
             // simulate I/O by sleeping
             Thread.Sleep((int)((hash >> 32) % (_fast ? 5UL : 500UL)));
             io.Stop();
         }
-        Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
+        Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
     }
     public async ValueTask DoMixedWorkAsync(CancellationToken cancel = default)
     {
@@ -384,24 +403,24 @@ public class FakeWork
         await Task.Yield();
         //string? threadName = Thread.CurrentThread.Name;
 
-        Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
+        Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
         for (int outer = 0; outer < (int)(hash % 256) && !cancel.IsCancellationRequested; ++outer)
         {
             Stopwatch cpu = Stopwatch.StartNew();
             CpuWork(hash);
             cpu.Stop();
-            Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
+            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
             Stopwatch mem = Stopwatch.StartNew();
             MemoryWork(hash);
             mem.Stop();
-            Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
+            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
             Stopwatch io = Stopwatch.StartNew();
             // simulate I/O by blocking
             await Task.Delay((int)((hash >> 32) % (_fast ? 5UL : 500UL)), cancel);
             io.Stop();
-            Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
+            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
         }
-        Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
+        Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
         //Debug.WriteLine($"Ran work {_id} on {threadName}!", "Work");
     }
     private void CpuWork(ulong hash)
@@ -442,8 +461,8 @@ public class FakeWork
 
 ### Other notes on performance
 Note that there are a number of other ways to invoke tasks asynchronously, and there seems to be some confusion about how to do so in various situations. 
-Using HighPerformanceFifoTaskFactory.StartNew is the preferred way to invoke things that you know are short-running.
-For long-running tasks, especially those that run until shutdown or forever, HighPerformanceFifoThreadScheduler.Run is the preferred way to invoke these.
+Using one of the HighPerformanceFifoThreadScheduler.QueueWork overloads is the preferred way to invoke things that you know are short-running.
+For long-running tasks, especially those that run until shutdown or run forever, HighPerformanceFifoThreadScheduler.Run is the preferred way to invoke these.
 The reason for this is to control the number of threads being used by the scheduler.
 Short-running tasks are sometimes run inline when all other threads are busy.
 This prevents the system from trying to do too much work because the code that's scheduling the work starts to just process the work itself, which slows its ability to schedule more work.

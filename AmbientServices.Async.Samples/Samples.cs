@@ -1,4 +1,4 @@
-﻿using AmbientServices.Async;
+﻿using AmbientServices;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Concurrent;
@@ -35,7 +35,7 @@ using System.Net;
 
 
 
-#region AASample1
+#region AsyncSample1
 sealed class MySoonToBeAsyncClass : IDisposable
 {
     private readonly Stream _file;
@@ -75,7 +75,7 @@ sealed class MySoonToBeAsyncClass : IDisposable
 
 
 
-#region AASample2
+#region AsyncSample2
 sealed class MyAlmostAsyncClass : IDisposable
 {
     private readonly Stream _file;
@@ -94,14 +94,14 @@ sealed class MyAlmostAsyncClass : IDisposable
     public void WriteData(string s)
     {
         byte[] buffer = Encoding.UTF8.GetBytes(s);
-        AA.RunTaskSync(() => _file.WriteAsync(buffer, 0, buffer.Length));
+        Async.RunTaskSync(() => _file.WriteAsync(buffer, 0, buffer.Length));
     }
     /// <summary>
     /// Flushes data to the file.
     /// </summary>
     public void Flush()
     {
-        AA.RunTaskSync(() => _file.FlushAsync());
+        Async.RunTaskSync(() => _file.FlushAsync());
     }
     /// <summary>
     /// Disposes of the instance.
@@ -115,7 +115,7 @@ sealed class MyAlmostAsyncClass : IDisposable
 
 
 
-#region AASample3
+#region AsyncSample3
 sealed class MyAsyncReadyClass : IDisposable
 {
     private readonly Stream _file;
@@ -134,14 +134,14 @@ sealed class MyAsyncReadyClass : IDisposable
     public async ValueTask WriteData(string s, CancellationToken cancel = default)
     {
         byte[] buffer = Encoding.UTF8.GetBytes(s);
-        await AA.RunTask(() => _file.WriteAsync(buffer, 0, buffer.Length, cancel));
+        await Async.RunTask(() => _file.WriteAsync(buffer, 0, buffer.Length, cancel));
     }
     /// <summary>
     /// Flushes data to the file.
     /// </summary>
     public async ValueTask Flush()
     {
-        await AA.RunTask(() => _file.FlushAsync());
+        await Async.RunTask(() => _file.FlushAsync());
     }
     /// <summary>
     /// Disposes of the instance.
@@ -156,7 +156,7 @@ sealed class MyAsyncReadyClass : IDisposable
 
 
 
-#region AASample4
+#region AsyncSample4
 sealed class MyFullyAsyncClass : IDisposable
 {
     private readonly Stream _file;
@@ -202,7 +202,7 @@ sealed class MyFullyAsyncClass : IDisposable
 public abstract class SynchronousLongRunningTask
 {
     private int _stop;
-    private Thread _loopThread;             // note that this could also have used ThreadPool.UnsafeQueueUserWorkItem or another similar ThreadPool invoker
+    private readonly Thread _loopThread;             // note that this could also have used ThreadPool.UnsafeQueueUserWorkItem or another similar ThreadPool invoker
 
     public SynchronousLongRunningTask()
     {
@@ -240,8 +240,8 @@ public abstract class SynchronousLongRunningTask
 /// </summary>
 public abstract class AsynchronousLongRunningTask
 {
-    private Task _longRunningTask;
-    private CancellationTokenSource _stop = new();
+    private readonly Task _longRunningTask;
+    private readonly CancellationTokenSource _stop = new();
 
     public AsynchronousLongRunningTask()
     {
@@ -356,23 +356,23 @@ public class FakeWork
     {
         ulong hash = GetHash(_id);
 
-        Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
+        Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
         for (int outer = 0; outer < (int)(hash % 256); ++outer)
         {
             Stopwatch cpu = Stopwatch.StartNew();
             CpuWork(hash);
             cpu.Stop();
-            Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
+            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
             Stopwatch mem = Stopwatch.StartNew();
             MemoryWork(hash);
             mem.Stop();
-            Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
+            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
             Stopwatch io = Stopwatch.StartNew();
             // simulate I/O by sleeping
             Thread.Sleep((int)((hash >> 32) % (_fast ? 5UL : 500UL)));
             io.Stop();
         }
-        Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
+        Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
     }
     public async ValueTask DoMixedWorkAsync(CancellationToken cancel = default)
     {
@@ -380,24 +380,24 @@ public class FakeWork
         await Task.Yield();
         //string? threadName = Thread.CurrentThread.Name;
 
-        Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
+        Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
         for (int outer = 0; outer < (int)(hash % 256) && !cancel.IsCancellationRequested; ++outer)
         {
             Stopwatch cpu = Stopwatch.StartNew();
             CpuWork(hash);
             cpu.Stop();
-            Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
+            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
             Stopwatch mem = Stopwatch.StartNew();
             MemoryWork(hash);
             mem.Stop();
-            Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
+            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
             Stopwatch io = Stopwatch.StartNew();
             // simulate I/O by blocking
             await Task.Delay((int)((hash >> 32) % (_fast ? 5UL : 500UL)), cancel);
             io.Stop();
-            Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
+            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
         }
-        Assert.AreEqual(typeof(HighPerformanceFifoSynchronizationContext), SynchronizationContext.Current?.GetType());
+        Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
         //Debug.WriteLine($"Ran work {_id} on {threadName}!", "Work");
     }
     private void CpuWork(ulong hash)

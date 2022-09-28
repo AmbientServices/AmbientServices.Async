@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AmbientServices.Async
+namespace AmbientServices
 {
     /// <summary>
     /// A static class to hold utility functions for calling async functions in a non-async context or vice versa, especially during the transition of a code base to async/await.
@@ -18,7 +18,7 @@ namespace AmbientServices.Async
     /// As migration progresses, calls to <see cref="RunSync(Func{ValueTask})"/> and <see cref="RunTaskSync(Func{Task})"/> move up the call stack, being gradually replaced by calls to <see cref="Run(Func{ValueTask})"/> or <see cref="RunTask(Func{Task})"/>.
     /// Calls that use await without one of these as the target will run asynchonously in a newly spawned async ambient context.
     /// </summary>
-    public static class AA
+    public static class Async
     {
         private static readonly System.Threading.SynchronizationContext sMultithreadedContext = new();
 
@@ -513,7 +513,7 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
         public static async ValueTask<IEnumerable<T>> ToEnumerableAsync<T>(this IAsyncEnumerable<T> ae, CancellationToken cancel = default)
         {
             // there may be a more efficient way to do this, but I haven't been able to find it
-            return await AA.Run(() => ToListAsync<T>(ae, cancel));
+            return await Async.Run(() => ToListAsync<T>(ae, cancel));
         }
         /// <summary>
         /// Converts a single item to an enumerable.
@@ -583,7 +583,7 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
         public static async ValueTask<IEnumerable<T>> ToEnumerableAsync<T>(this IAsyncEnumerator<T> ae, CancellationToken cancel = default)
         {
             // there may be a more efficient way to do this, but I haven't been able to find it
-            return await AA.Run(() => ToListAsync<T>(ae, cancel));
+            return await Async.Run(() => ToListAsync<T>(ae, cancel));
         }
     }
 #endif

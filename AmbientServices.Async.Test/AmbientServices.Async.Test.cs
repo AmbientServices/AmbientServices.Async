@@ -1,11 +1,11 @@
-﻿using AmbientServices.Async;
+﻿using AmbientServices;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace AmbientServices.Async.Test
+namespace AmbientServices.Test
 {
     [TestClass]
     public class TestAmbientService

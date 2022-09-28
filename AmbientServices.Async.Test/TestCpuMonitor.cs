@@ -1,5 +1,5 @@
-﻿using AmbientServices.Async;
-using AmbientServices.Async.Utility;
+﻿using AmbientServices;
+using AmbientServices.Utilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 #nullable enable
 
-namespace AmbientServices.Async.Test
+namespace AmbientServices.Test
 {
     [TestClass]
     public class TestCpuMonitor

@@ -1,6 +1,5 @@
 ﻿using AmbientServices;
-using AmbientServices.Async;
-using AmbientServices.Async.Utility;
+using AmbientServices.Utilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Concurrent;
@@ -15,7 +14,7 @@ using System.Threading.Tasks;
 
 #nullable enable
 
-namespace AmbientServices.Async.Test
+namespace AmbientServices.Test
 {
     [TestClass]
     public class TestHighPerformanceFifoTaskScheduler
@@ -177,7 +176,7 @@ namespace AmbientServices.Async.Test
             for (int i = 0; i < 10; ++i)
             {
                 FakeWork w = new(i, true);
-                tasks.Add(scheduler.QueueWork(() => AA.RunSync(() => w.DoMixedWorkAsync(CancellationToken.None, false))));
+                tasks.Add(scheduler.QueueWork(() => Async.RunSync(() => w.DoMixedWorkAsync(CancellationToken.None, false))));
             }
             await Task.WhenAll(tasks.Where(t => t is not null).ToArray()!); // the Where takes care of ensuring there are no null Tasks
             scheduler.Reset();
@@ -362,12 +361,12 @@ namespace AmbientServices.Async.Test
             try
             {
                 if (oldContext is HighPerformanceFifoSynchronizationContext) resetContext = false;
-                else SynchronizationContext.SetSynchronizationContext(HighPerformanceFifoSynchronizationContext.Default);
+                else SynchronizationContext.SetSynchronizationContext(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext);
                 await f();
             }
             catch (AggregateException ex)
             {
-                AA.ConvertAggregateException(ex);
+                Async.ConvertAggregateException(ex);
                 throw;
             }
             finally
@@ -401,13 +400,13 @@ namespace AmbientServices.Async.Test
         [TestMethod]
         public void SendAndPostExceptions()
         {
-            Assert.ThrowsException<ArgumentNullException>(() => HighPerformanceFifoSynchronizationContext.Default.Post(null!, null));
-            Assert.ThrowsException<ArgumentNullException>(() => HighPerformanceFifoSynchronizationContext.Default.Send(null!, null));
+            Assert.ThrowsException<ArgumentNullException>(() => HighPerformanceFifoTaskScheduler.Default.SynchronizationContext.Post(null!, null));
+            Assert.ThrowsException<ArgumentNullException>(() => HighPerformanceFifoTaskScheduler.Default.SynchronizationContext.Send(null!, null));
         }
         [TestMethod]
         public void CreateCopy()
         {
-            SynchronizationContext copy = HighPerformanceFifoSynchronizationContext.Default.CreateCopy();
+            SynchronizationContext copy = HighPerformanceFifoTaskScheduler.Default.SynchronizationContext.CreateCopy();
             Assert.IsNotNull(copy);
             Assert.IsInstanceOfType(copy, typeof(HighPerformanceFifoSynchronizationContext));
         }
@@ -415,7 +414,7 @@ namespace AmbientServices.Async.Test
         public async Task Send()
         {
             bool called = false;
-            HighPerformanceFifoSynchronizationContext.Default.Send(state =>
+            HighPerformanceFifoTaskScheduler.Default.SynchronizationContext.Send(state =>
             {
                 Assert.IsNull(state);
                 called = true;

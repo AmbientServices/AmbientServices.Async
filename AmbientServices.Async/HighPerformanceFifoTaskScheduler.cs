@@ -1,5 +1,4 @@
 ﻿using AmbientServices;
-using AmbientServices.Async.Utility;
 using AmbientServices.Utilities;
 using System;
 using System.Collections.Concurrent;
@@ -13,7 +12,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AmbientServices.Async
+namespace AmbientServices
 {
     /// <summary>
     /// A <see cref="TaskFactory"/> that uses the <see cref="HighPerformanceFifoTaskScheduler"/> to schedule tasks.
@@ -79,16 +78,11 @@ namespace AmbientServices.Async
 #if NET5_0_OR_GREATER
     [UnsupportedOSPlatform("browser")]
 #endif
-    public class HighPerformanceFifoSynchronizationContext : SynchronizationContext
+    internal class HighPerformanceFifoSynchronizationContext : SynchronizationContext
     {
-        private static readonly HighPerformanceFifoSynchronizationContext _Default = new();
-        /// <summary>
-        /// Gets the instance for this singleton class.
-        /// </summary>
-        public static HighPerformanceFifoSynchronizationContext Default => _Default;
         private readonly HighPerformanceFifoTaskScheduler _scheduler;
 
-        private HighPerformanceFifoSynchronizationContext(HighPerformanceFifoTaskScheduler? scheduler = null)
+        internal HighPerformanceFifoSynchronizationContext(HighPerformanceFifoTaskScheduler? scheduler = null)
         {
             SetWaitNotificationRequired();
             _scheduler = scheduler ?? HighPerformanceFifoTaskScheduler.Default;
@@ -366,6 +360,7 @@ namespace AmbientServices.Async
         /// </summary>
         public static new HighPerformanceFifoTaskScheduler Default => DefaultTaskScheduler;
 
+        private readonly HighPerformanceFifoSynchronizationContext _synchronizationContext;
 
         internal readonly IAmbientStatistic? SchedulerInvocations;
         internal readonly IAmbientStatistic? SchedulerInvocationTime;
@@ -400,6 +395,11 @@ namespace AmbientServices.Async
         private long _lastScaleUpTime;                                  // keeps track of the last time a scale up
         private long _lastScaleDownTime;                                // keeps track of the last time a scale down
         private long _lastResetTime;                                    // keeps track of the last time a reset happened
+
+        /// <summary>
+        /// Gets the <see cref="SynchronizationContext"/> for this task scheduler.
+        /// </summary>
+        public SynchronizationContext SynchronizationContext => _synchronizationContext;
 
         internal bool Stopping => _stopMasterThread != 0;
         /// <summary>
@@ -517,6 +517,8 @@ namespace AmbientServices.Async
         }
         private HighPerformanceFifoTaskScheduler(string schedulerName, ThreadPriority priority = ThreadPriority.Normal, IAmbientStatistics? statistics = null, int schedulerMasterFrequencyMilliseconds = 1000, int bufferThreadCount = 0, int maxThreads = 0, bool testMode = false)
         {
+            _synchronizationContext = new HighPerformanceFifoSynchronizationContext(this);
+
             // save the scheduler name and priority
             _statistics = statistics ?? _AmbientStatistics.Local;
             _schedulerName = schedulerName;
@@ -1000,7 +1002,7 @@ namespace AmbientServices.Async
             InterlockedUtilities.TryOptomisticMax(ref _peakConcurrentUsageSinceLastRetirementCheck, _busyWorkers);
             try
             {
-                if (oldContext is not HighPerformanceFifoSynchronizationContext) SynchronizationContext.SetSynchronizationContext(HighPerformanceFifoSynchronizationContext.Default);
+                if (oldContext is not HighPerformanceFifoSynchronizationContext) SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
                 action();
             }
             finally
@@ -1019,7 +1021,7 @@ namespace AmbientServices.Async
             InterlockedUtilities.TryOptomisticMax(ref _peakConcurrentUsageSinceLastRetirementCheck, _busyWorkers);
             try
             {
-                if (oldContext is not HighPerformanceFifoSynchronizationContext) SynchronizationContext.SetSynchronizationContext(HighPerformanceFifoSynchronizationContext.Default);
+                if (oldContext is not HighPerformanceFifoSynchronizationContext) SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
                 return await func().ConfigureAwait(false); // the whole point of this function is to execute the task in the hight performance synchronization context
             }
             finally
@@ -1038,7 +1040,7 @@ namespace AmbientServices.Async
             InterlockedUtilities.TryOptomisticMax(ref _peakConcurrentUsageSinceLastRetirementCheck, _busyWorkers);
             try
             {
-                if (oldContext is not HighPerformanceFifoSynchronizationContext) SynchronizationContext.SetSynchronizationContext(HighPerformanceFifoSynchronizationContext.Default);
+                if (oldContext is not HighPerformanceFifoSynchronizationContext) SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
                 await func().ConfigureAwait(false); // the whole point of this function is to execute the task in the hight performance synchronization context
             }
             finally
