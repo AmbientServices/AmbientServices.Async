@@ -491,6 +491,18 @@ namespace AmbientServices.Test
             HighPerformanceFifoWorker worker = scheduler.CreateWorker();    // the worker disposes of itself
             worker.Invoke(null!);
         }
+        private AsyncLocal<int> ali = new();
+        [TestMethod]
+        public async Task AsyncLocalFlow()
+        {
+            int testvalue = 48902343;
+            ali.Value = testvalue;
+            HighPerformanceFifoTaskScheduler.Default.SynchronizationContext.Post(state => { Assert.AreEqual(testvalue, ali.Value); }, null);
+            await HighPerformanceFifoTaskFactory.Default.StartNew(() => Assert.AreEqual(testvalue, ali.Value));
+            using HighPerformanceFifoTaskScheduler? scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(Worker));
+            await scheduler.Run(() => Assert.AreEqual(testvalue, ali.Value));
+            await scheduler.QueueWork(() => Assert.AreEqual(testvalue, ali.Value));
+        }
     }
     public class FakeWork
     {
