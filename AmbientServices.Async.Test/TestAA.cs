@@ -21,7 +21,7 @@ namespace AmbientServices.Test
         [TestMethod]
         public void Async_Basic()
         {
-            Assert.AreNotEqual(Async.MultithreadedContext, Async.SinglethreadedContext);
+            Assert.AreNotEqual(Async.DefaultAsyncContext, Async.SinglethreadedContext);
             int result = Async.RunTaskSync(() =>
             {
                 Task<int> task = Async_BasicAsync();
@@ -66,7 +66,7 @@ namespace AmbientServices.Test
         [TestMethod, ExpectedException(typeof(ExpectedException))]
         public void Async_AggregateExceptionUnwrapWithReturn()
         {
-            Assert.AreNotEqual(Async.MultithreadedContext, Async.SinglethreadedContext);
+            Assert.AreNotEqual(Async.DefaultAsyncContext, Async.SinglethreadedContext);
             int result = Async.RunTaskSync(async () =>
             {
                 await Task.Delay(10);
@@ -95,7 +95,7 @@ namespace AmbientServices.Test
         [TestMethod, ExpectedException(typeof(AggregateException))]
         public void Async_AggregateExceptionCantUnwrapWithReturn()
         {
-            Assert.AreNotEqual(Async.MultithreadedContext, Async.SinglethreadedContext);
+            Assert.AreNotEqual(Async.DefaultAsyncContext, Async.SinglethreadedContext);
             int result = Async.RunTaskSync(async () =>
             {
                 await Task.Delay(10);
@@ -219,7 +219,7 @@ namespace AmbientServices.Test
         [TestMethod]
         public void Async_Synchronize()
         {
-            Assert.AreNotEqual(Async.MultithreadedContext, Async.SinglethreadedContext);
+            Assert.AreNotEqual(Async.DefaultAsyncContext, Async.SinglethreadedContext);
             Async.RunTaskSync(AsyncTest);
         }
         private async Task AsyncTest()

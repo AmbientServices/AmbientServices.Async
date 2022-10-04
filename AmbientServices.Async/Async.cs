@@ -20,12 +20,16 @@ namespace AmbientServices
     /// </summary>
     public static class Async
     {
-        private static readonly System.Threading.SynchronizationContext sMultithreadedContext = new();
+        private static SynchronizationContext sDefaultAsyncContext = new();
 
         /// <summary>
-        /// Gets a multithreaded context to use for spawning tasks to the multithreaded context from within a synchronous context.
+        /// Gets or sets the default async context, which will be used when forcing tasks to the async context from within a synchronous context for example when calling <see cref="RunAsync"/> without specifying an explicit context.
         /// </summary>
-        public static System.Threading.SynchronizationContext MultithreadedContext => sMultithreadedContext;
+        public static SynchronizationContext DefaultAsyncContext
+        {
+            get { return sDefaultAsyncContext; }
+            set { Interlocked.Exchange(ref sDefaultAsyncContext, value); }
+        }
         /// <summary>
         /// Gets the single threaded context to use for spawning tasks to be run on the current thread.
         /// </summary>
@@ -130,6 +134,7 @@ namespace AmbientServices
         [DebuggerStepThrough]
         public static Task RunTask(Func<Task> a)
         {
+            if (a is null) throw new ArgumentNullException(nameof(a));
             if (SynchronizationContext.Current == SynchronousSynchronizationContext.Default)
             {
                 RunTaskSync(a);
@@ -137,7 +142,7 @@ namespace AmbientServices
             }
             else
             {
-                return RunTaskAsync(a);
+                return a();
             }
         }
         /// <summary>
@@ -147,6 +152,7 @@ namespace AmbientServices
         [DebuggerStepThrough]
         public static Task<T> RunTask<T>(Func<Task<T>> a)
         {
+            if (a is null) throw new ArgumentNullException(nameof(a));
             if (SynchronizationContext.Current == SynchronousSynchronizationContext.Default)
             {
                 T t = RunTaskSync(a);
@@ -154,7 +160,7 @@ namespace AmbientServices
             }
             else
             {
-                return RunTaskAsync(a);
+                return a();
             }
         }
         /// <summary>
@@ -164,6 +170,7 @@ namespace AmbientServices
         [DebuggerStepThrough]
         public static ValueTask Run(Func<ValueTask> a)
         {
+            if (a is null) throw new ArgumentNullException(nameof(a));
             if (SynchronizationContext.Current == SynchronousSynchronizationContext.Default)
             {
                 RunSync(a);
@@ -171,7 +178,7 @@ namespace AmbientServices
             }
             else
             {
-                return RunAsync(a);
+                return a();
             }
         }
         /// <summary>
@@ -181,6 +188,7 @@ namespace AmbientServices
         [DebuggerStepThrough]
         public static ValueTask<T> Run<T>(Func<ValueTask<T>> a)
         {
+            if (a is null) throw new ArgumentNullException(nameof(a));
             if (SynchronizationContext.Current == SynchronousSynchronizationContext.Default)
             {
                 T t = RunSync(a);
@@ -188,7 +196,7 @@ namespace AmbientServices
             }
             else
             {
-                return RunAsync(a);
+                return a();
             }
         }
         /// <summary>
@@ -196,10 +204,11 @@ namespace AmbientServices
         /// Use this to run the action in an asynchronous ambient context, but wait on the current thread for it to finish.
         /// </summary>
         /// <param name="a">The asynchronous action to run.</param>
+        /// <param name="context">The <see cref="SynchronizationContext"/> to use to asynchronously run the task, or null to use <see cref="DefaultAsyncContext"/>.</param>
         [DebuggerStepThrough]
-        public static Task RunTaskAsync(Func<Task> a)
+        public static Task RunTaskAsync(Func<Task> a, SynchronizationContext? context = null)
         {
-            return RunInTemporaryContextWithExceptionConversion(sMultithreadedContext, () =>
+            return RunInTemporaryContextWithExceptionConversion(context ?? sDefaultAsyncContext, () =>
             {
                 Task task = Task.Run(a);       // this should run the task on another thread and should be started using the ambient synchronization context, which is now the async one
                 task.WaitAndUnwrapException(false);
@@ -211,10 +220,11 @@ namespace AmbientServices
         /// Use this to run the action in an asynchronous ambient context, but wait on the current thread for it to finish.
         /// </summary>
         /// <param name="a">The cancelable asynchronous action to run.</param>
+        /// <param name="context">The <see cref="SynchronizationContext"/> to use to asynchronously run the task, or null to use <see cref="DefaultAsyncContext"/>.</param>
         [DebuggerStepThrough]
-        public static Task<T> RunTaskAsync<T>(Func<Task<T>> a)
+        public static Task<T> RunTaskAsync<T>(Func<Task<T>> a, SynchronizationContext? context = null)
         {
-            return RunInTemporaryContextWithExceptionConversion(sMultithreadedContext, () =>
+            return RunInTemporaryContextWithExceptionConversion(context ?? sDefaultAsyncContext, () =>
             {
                 Task<T> task = Task.Run(a);       // this should run the task on another thread and should be started using the ambient synchronization context, which is now the async one
                 task.WaitAndUnwrapException(false);
@@ -226,10 +236,11 @@ namespace AmbientServices
         /// Use this to run the action in an asynchronous ambient context, but wait on the current thread for it to finish.
         /// </summary>
         /// <param name="a">The cancelable asynchronous action to run.</param>
+        /// <param name="context">The <see cref="SynchronizationContext"/> to use to asynchronously run the task, or null to use <see cref="DefaultAsyncContext"/>.</param>
         [DebuggerStepThrough]
-        public static ValueTask RunAsync(Func<ValueTask> a)
+        public static ValueTask RunAsync(Func<ValueTask> a, SynchronizationContext? context = null)
         {
-            return RunInTemporaryContextWithExceptionConversion(sMultithreadedContext, () =>
+            return RunInTemporaryContextWithExceptionConversion(context ?? sDefaultAsyncContext, () =>
             {
                 Task task = Task.Run(() => a().AsTask());           // I'm not seeing a way to do this without this conversion (which negates the optimization provided by ValueTask)
                 task.WaitAndUnwrapException(false);
@@ -241,10 +252,11 @@ namespace AmbientServices
         /// Use this to run the action in an asynchronous ambient context, but wait on the current thread for it to finish.
         /// </summary>
         /// <param name="a">The cancelable asynchronous action to run.</param>
+        /// <param name="context">The <see cref="SynchronizationContext"/> to use to asynchronously run the task, or null to use <see cref="DefaultAsyncContext"/>.</param>
         [DebuggerStepThrough]
-        public static ValueTask<T> RunAsync<T>(Func<ValueTask<T>> a)
+        public static ValueTask<T> RunAsync<T>(Func<ValueTask<T>> a, SynchronizationContext? context = null)
         {
-            return RunInTemporaryContextWithExceptionConversion(sMultithreadedContext, () =>
+            return RunInTemporaryContextWithExceptionConversion(context ?? sDefaultAsyncContext, () =>
             {
                 Task<T> task = Task.Run(() => a().AsTask());        // I'm not seeing a way to do this without this conversion (which negates the optimization provided by ValueTask FWIW)
                 T result = task.WaitAndUnwrapException(false);
