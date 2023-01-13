@@ -11,6 +11,7 @@ using System.Runtime.Versioning;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using static System.Collections.Specialized.BitVector32;
 
 namespace AmbientServices
 {
@@ -856,26 +857,24 @@ namespace AmbientServices
         }
 
         /// <summary>
-        /// Queues asynchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline if not.
+        /// Transfers asynchronous work to this scheduler, running it within the scheduler so that subsequent work also runs on this scheduler.
         /// </summary>
         /// <typeparam name="T">The type returned by the function.</typeparam>
         /// <param name="func">The asynchronous function that does the work.</param>
-        public async ValueTask<T> QueueWork<T>(Func<ValueTask<T>> func)
+        public async ValueTask<T> TransferWork<T>(Func<ValueTask<T>> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
-            return await ExecuteTask(() => func()).ConfigureAwait(false);   // the whole point of this function is to possibly run the work in the HP context if there are workers available
+            return await ExecuteTask(() => func()).ConfigureAwait(false);
         }
-
         /// <summary>
-        /// Queues asynchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline if not.
+        /// Transfers asynchronous work to this scheduler, running it within the scheduler so that subsequent work also runs on this scheduler.
         /// </summary>
         /// <param name="func">The asynchronous function that does the work.</param>
-        public async ValueTask QueueWork(Func<ValueTask> func)
+        public async ValueTask TransferWork(Func<ValueTask> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
-            await ExecuteTask(() => func()).ConfigureAwait(false);   // the whole point of this function is to possibly run the work in the HP context if there are workers available
+            await ExecuteTask(() => func()).ConfigureAwait(false);
         }
-
         /// <summary>
         /// Runs a long-running function asynchronously on a scheduler thread.
         /// </summary>
@@ -961,6 +960,85 @@ namespace AmbientServices
             return tcs.Task;
         }
         /// <summary>
+        /// Queues asynchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline if not.
+        /// </summary>
+        /// <typeparam name="T">The type returned by the function.</typeparam>
+        /// <param name="func">The asynchronous function that does the work.</param>
+        public async ValueTask<T> QueueWork<T>(Func<ValueTask<T>> func)
+        {
+            if (func == null) throw new ArgumentNullException(nameof(func));
+            TaskCompletionSource<T> tcs = new();
+            SchedulerInvocations?.Increment();
+            // try to get a ready thread
+            HighPerformanceFifoWorker? worker = _readyWorkerList.Pop();
+            // no ready workers?
+            if (worker is null || Stopping)
+            {
+                if (!Stopping)
+                {
+                    // record this miss
+                    Interlocked.Exchange(ref _lastInlineExecutionTicks, Environment.TickCount);
+                    SchedulerInlineExecutions?.Increment();
+                    // wake the master thread so it will add more threads ASAP
+                    _wakeSchedulerMasterThread.Set();
+                    Logger.Log($"'{_schedulerName}': no available workers--invoking inline.", "Busy", AmbientLogLevel.Warning);
+                }
+                // execute the action "inline" (in this case, on the ambient task scheduler)
+                return await ExecuteTask(func).ConfigureAwait(false);
+            }
+            else
+            {
+                Debug.Assert(!worker.IsBusy);
+            }
+            worker.Invoke(async () =>
+            {
+                T val = await ExecuteTask(func).ConfigureAwait(false);
+                tcs.SetResult(val);
+            });
+            return await tcs.Task.ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Queues asynchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline if not.
+        /// </summary>
+        /// <param name="func">The asynchronous function that does the work.</param>
+        public async ValueTask QueueWork(Func<ValueTask> func)
+        {
+            if (func == null) throw new ArgumentNullException(nameof(func));
+            TaskCompletionSource<bool> tcs = new();
+            SchedulerInvocations?.Increment();
+            // try to get a ready thread
+            HighPerformanceFifoWorker? worker = _readyWorkerList.Pop();
+            // no ready workers?
+            if (worker is null || Stopping)
+            {
+                if (!Stopping)
+                {
+                    // record this miss
+                    Interlocked.Exchange(ref _lastInlineExecutionTicks, Environment.TickCount);
+                    SchedulerInlineExecutions?.Increment();
+                    // wake the master thread so it will add more threads ASAP
+                    _wakeSchedulerMasterThread.Set();
+                    Logger.Log($"'{_schedulerName}': no available workers--invoking inline.", "Busy", AmbientLogLevel.Warning);
+                }
+                // execute the action inline
+                await ExecuteTask(func).ConfigureAwait(false);
+                return;
+            }
+            else
+            {
+                Debug.Assert(!worker.IsBusy);
+            }
+            worker.Invoke(async () =>
+            {
+                await ExecuteTask(func).ConfigureAwait(false);
+                tcs.SetResult(true);
+            });
+            await ExecuteTask(func).ConfigureAwait(false);
+            return;
+        }
+
+        /// <summary>
         /// Runs a fire-and-forget action asynchronously on a scheduler thread.
         /// </summary>
         /// <param name="action">The action to run asynchronously.  May be an "async void" action.</param>
@@ -1022,7 +1100,7 @@ namespace AmbientServices
             try
             {
                 if (oldContext is not HighPerformanceFifoSynchronizationContext) SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
-                return await func().ConfigureAwait(false); // the whole point of this function is to execute the task in the hight performance synchronization context
+                return await func().ConfigureAwait(false); // the whole point of this function is to execute the task in the high performance synchronization context
             }
             finally
             {
@@ -1041,7 +1119,7 @@ namespace AmbientServices
             try
             {
                 if (oldContext is not HighPerformanceFifoSynchronizationContext) SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
-                await func().ConfigureAwait(false); // the whole point of this function is to execute the task in the hight performance synchronization context
+                await func().ConfigureAwait(false); // the whole point of this function is to execute the task in the high performance synchronization context
             }
             finally
             {
