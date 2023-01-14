@@ -803,45 +803,6 @@ namespace AmbientServices
             _readyWorkerList.Push(worker);
         }
 
-        /// <summary>
-        /// Queues synchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline (synchronously) if not.
-        /// </summary>
-        /// <param name="action">The action to run.</param>
-        /// <returns>A <see cref="Task"/> representing the work, no matter whether it was scheduled on a worker thread or run inline.</returns>
-        /// <remarks>Exceptions thrown from <paramref name="action"/> are placed into the returned <see cref="Task"/>.</remarks>
-        public Task QueueWork(Action action)
-        {
-            if (action == null) throw new ArgumentNullException(nameof(action));
-            TaskCompletionSource<bool> tcs = new();
-            SchedulerInvocations?.Increment();
-            // try to get a ready thread
-            HighPerformanceFifoWorker? worker = _readyWorkerList.Pop();
-            // no ready workers?
-            if (worker is null || Stopping)
-            {
-                if (!Stopping)
-                {
-                    // record this miss
-                    Interlocked.Exchange(ref _lastInlineExecutionTicks, Environment.TickCount);
-                    SchedulerInlineExecutions?.Increment();
-                    // wake the master thread so it will add more threads ASAP
-                    _wakeSchedulerMasterThread.Set();
-                    Logger.Log($"'{_schedulerName}': no available workers--invoking inline.", "Busy", AmbientLogLevel.Warning);
-                }
-                // execute the action inline
-                ExecuteActionWithTaskCompletionSource(action, tcs);
-                return tcs.Task;
-            }
-            else
-            {
-                Debug.Assert(!worker.IsBusy);
-            }
-            worker.Invoke(() => 
-            {
-                ExecuteActionWithTaskCompletionSource(action, tcs);
-            });
-            return tcs.Task;
-        }
         internal void ExecuteActionWithTaskCompletionSource(Action action, TaskCompletionSource<bool> tcs)
         {
             // execute the action inline
@@ -853,6 +814,19 @@ namespace AmbientServices
             catch (Exception ex)
             {
                 tcs.SetException(ex);
+            }
+        }
+
+        private void ReportQueueMiss()
+        {
+            if (!Stopping)
+            {
+                // record this miss
+                Interlocked.Exchange(ref _lastInlineExecutionTicks, Environment.TickCount);
+                SchedulerInlineExecutions?.Increment();
+                // wake the master thread so it will add more threads ASAP
+                _wakeSchedulerMasterThread.Set();
+                Logger.Log($"'{_schedulerName}': no available workers--invoking inline.", "Busy", AmbientLogLevel.Warning);
             }
         }
 
@@ -874,6 +848,100 @@ namespace AmbientServices
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
             await ExecuteTask(() => func()).ConfigureAwait(false);
+        }
+        /// <summary>
+        /// Queues synchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline (synchronously) if not.
+        /// </summary>
+        /// <param name="action">The action to run.</param>
+        /// <returns>A <see cref="Task"/> representing the work, no matter whether it was scheduled on a worker thread or run inline.</returns>
+        /// <remarks>Exceptions thrown from <paramref name="action"/> are placed into the returned <see cref="Task"/>.</remarks>
+        public Task QueueWork(Action action)
+        {
+            if (action == null) throw new ArgumentNullException(nameof(action));
+            TaskCompletionSource<bool> tcs = new();
+            SchedulerInvocations?.Increment();
+            // try to get a ready thread
+            HighPerformanceFifoWorker? worker = _readyWorkerList.Pop();
+            // no ready workers?
+            if (worker is null || Stopping)
+            {
+                ReportQueueMiss();
+                // execute the action inline
+                ExecuteActionWithTaskCompletionSource(action, tcs);
+                return tcs.Task;
+            }
+            else
+            {
+                Debug.Assert(!worker.IsBusy);
+            }
+            worker.Invoke(() => 
+            {
+                ExecuteActionWithTaskCompletionSource(action, tcs);
+            });
+            return tcs.Task;
+        }
+
+        /// <summary>
+        /// Queues asynchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline if not.
+        /// </summary>
+        /// <typeparam name="T">The type returned by the function.</typeparam>
+        /// <param name="func">The asynchronous function that does the work.</param>
+        public async ValueTask<T> QueueWork<T>(Func<ValueTask<T>> func)
+        {
+            if (func == null) throw new ArgumentNullException(nameof(func));
+            TaskCompletionSource<T> tcs = new();
+            SchedulerInvocations?.Increment();
+            // try to get a ready thread
+            HighPerformanceFifoWorker? worker = _readyWorkerList.Pop();
+            // no ready workers?
+            if (worker is null || Stopping)
+            {
+                ReportQueueMiss();
+                // execute the action "inline" (in this case, on the ambient task scheduler)
+                return await ExecuteTask(func).ConfigureAwait(false);
+            }
+            else
+            {
+                Debug.Assert(!worker.IsBusy);
+            }
+            worker.Invoke(async () =>
+            {
+                T val = await ExecuteTask(func).ConfigureAwait(false);
+                tcs.SetResult(val);
+            });
+            return await tcs.Task.ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Queues asynchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline if not.
+        /// </summary>
+        /// <param name="func">The asynchronous function that does the work.</param>
+        public async ValueTask QueueWork(Func<ValueTask> func)
+        {
+            if (func == null) throw new ArgumentNullException(nameof(func));
+            TaskCompletionSource<bool> tcs = new();
+            SchedulerInvocations?.Increment();
+            // try to get a ready thread
+            HighPerformanceFifoWorker? worker = _readyWorkerList.Pop();
+            // no ready workers?
+            if (worker is null || Stopping)
+            {
+                ReportQueueMiss();
+                // execute the action inline
+                await ExecuteTask(func).ConfigureAwait(false);
+                return;
+            }
+            else
+            {
+                Debug.Assert(!worker.IsBusy);
+            }
+            worker.Invoke(async () =>
+            {
+                await ExecuteTask(func).ConfigureAwait(false);
+                tcs.SetResult(true);
+            });
+            await ExecuteTask(func).ConfigureAwait(false);
+            return;
         }
         /// <summary>
         /// Runs a long-running function asynchronously on a scheduler thread.
@@ -959,85 +1027,6 @@ namespace AmbientServices
             });
             return tcs.Task;
         }
-        /// <summary>
-        /// Queues asynchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline if not.
-        /// </summary>
-        /// <typeparam name="T">The type returned by the function.</typeparam>
-        /// <param name="func">The asynchronous function that does the work.</param>
-        public async ValueTask<T> QueueWork<T>(Func<ValueTask<T>> func)
-        {
-            if (func == null) throw new ArgumentNullException(nameof(func));
-            TaskCompletionSource<T> tcs = new();
-            SchedulerInvocations?.Increment();
-            // try to get a ready thread
-            HighPerformanceFifoWorker? worker = _readyWorkerList.Pop();
-            // no ready workers?
-            if (worker is null || Stopping)
-            {
-                if (!Stopping)
-                {
-                    // record this miss
-                    Interlocked.Exchange(ref _lastInlineExecutionTicks, Environment.TickCount);
-                    SchedulerInlineExecutions?.Increment();
-                    // wake the master thread so it will add more threads ASAP
-                    _wakeSchedulerMasterThread.Set();
-                    Logger.Log($"'{_schedulerName}': no available workers--invoking inline.", "Busy", AmbientLogLevel.Warning);
-                }
-                // execute the action "inline" (in this case, on the ambient task scheduler)
-                return await ExecuteTask(func).ConfigureAwait(false);
-            }
-            else
-            {
-                Debug.Assert(!worker.IsBusy);
-            }
-            worker.Invoke(async () =>
-            {
-                T val = await ExecuteTask(func).ConfigureAwait(false);
-                tcs.SetResult(val);
-            });
-            return await tcs.Task.ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Queues asynchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline if not.
-        /// </summary>
-        /// <param name="func">The asynchronous function that does the work.</param>
-        public async ValueTask QueueWork(Func<ValueTask> func)
-        {
-            if (func == null) throw new ArgumentNullException(nameof(func));
-            TaskCompletionSource<bool> tcs = new();
-            SchedulerInvocations?.Increment();
-            // try to get a ready thread
-            HighPerformanceFifoWorker? worker = _readyWorkerList.Pop();
-            // no ready workers?
-            if (worker is null || Stopping)
-            {
-                if (!Stopping)
-                {
-                    // record this miss
-                    Interlocked.Exchange(ref _lastInlineExecutionTicks, Environment.TickCount);
-                    SchedulerInlineExecutions?.Increment();
-                    // wake the master thread so it will add more threads ASAP
-                    _wakeSchedulerMasterThread.Set();
-                    Logger.Log($"'{_schedulerName}': no available workers--invoking inline.", "Busy", AmbientLogLevel.Warning);
-                }
-                // execute the action inline
-                await ExecuteTask(func).ConfigureAwait(false);
-                return;
-            }
-            else
-            {
-                Debug.Assert(!worker.IsBusy);
-            }
-            worker.Invoke(async () =>
-            {
-                await ExecuteTask(func).ConfigureAwait(false);
-                tcs.SetResult(true);
-            });
-            await ExecuteTask(func).ConfigureAwait(false);
-            return;
-        }
-
         /// <summary>
         /// Runs a fire-and-forget action asynchronously on a scheduler thread.
         /// </summary>
