@@ -808,8 +808,12 @@ namespace AmbientServices
             // execute the action inline
             try
             {
-                ExecuteAction(action);
-                tcs.SetResult(true);
+                ExecuteAction(() =>
+                {
+                    action();
+                    // run SetResult inside ExecuteAction so that continuations also run with this task scheduler
+                    tcs.SetResult(true);
+                });
             }
             catch (Exception ex)
             {
@@ -906,8 +910,13 @@ namespace AmbientServices
             }
             worker.Invoke(async () =>
             {
-                T val = await ExecuteTask(func).ConfigureAwait(false);
-                tcs.SetResult(val);
+                T val = await ExecuteTask(async () =>
+                {
+                    T ret = await func().ConfigureAwait(false);
+                    // run SetResult inside ExecuteTask so that continuations also run with this task scheduler
+                    tcs.SetResult(ret);
+                    return ret;
+                }).ConfigureAwait(false);
             });
             return await tcs.Task.ConfigureAwait(false);
         }
@@ -937,8 +946,12 @@ namespace AmbientServices
             }
             worker.Invoke(async () =>
             {
-                await ExecuteTask(func).ConfigureAwait(false);
-                tcs.SetResult(true);
+                await ExecuteTask(async () =>
+                {
+                    await func().ConfigureAwait(false);
+                    // run SetResult inside ExecuteTask so that continuations also run with this task scheduler
+                    tcs.SetResult(true);
+                }).ConfigureAwait(false);
             });
             await ExecuteTask(func).ConfigureAwait(false);
             return;
@@ -976,7 +989,11 @@ namespace AmbientServices
             {
                 try
                 {
-                    ExecuteAction(() => tcs.SetResult(func()));
+                    ExecuteAction(() =>
+                    {
+                        // run SetResult inside ExecuteAction so that continuations also run with this task scheduler
+                        tcs.SetResult(func());
+                    });
                 }
                 catch (Exception e)
                 {
@@ -1018,7 +1035,12 @@ namespace AmbientServices
             {
                 try
                 {
-                    ExecuteAction(() => { action(); tcs.SetResult(true); });
+                    ExecuteAction(() => 
+                    { 
+                        action();
+                        // run SetResult inside ExecuteAction so that continuations also run with this task scheduler
+                        tcs.SetResult(true); 
+                    });
                 }
                 catch (Exception e)
                 {
