@@ -806,19 +806,20 @@ namespace AmbientServices
         internal void ExecuteActionWithTaskCompletionSource(Action action, TaskCompletionSource<bool> tcs)
         {
             // execute the action inline
-            try
+            ExecuteAction(() =>
             {
-                ExecuteAction(() =>
+                try
                 {
                     action();
                     // run SetResult inside ExecuteAction so that continuations also run with this task scheduler
                     tcs.SetResult(true);
-                });
-            }
-            catch (Exception ex)
-            {
-                tcs.SetException(ex);
-            }
+                }
+                catch (Exception ex)
+                {
+                    // run SetException inside ExecuteAction so that continuations also run with this task scheduler
+                    tcs.SetException(ex);
+                }
+            });
         }
 
         private void ReportQueueMiss()
@@ -987,18 +988,19 @@ namespace AmbientServices
             }
             worker.Invoke(() =>
             {
-                try
+                ExecuteAction(() =>
                 {
-                    ExecuteAction(() =>
+                    try
                     {
                         // run SetResult inside ExecuteAction so that continuations also run with this task scheduler
                         tcs.SetResult(func());
-                    });
-                }
-                catch (Exception e)
-                {
-                    tcs.SetException(e);
-                }
+                    }
+                    catch (Exception e)
+                    {
+                        // run SetException inside ExecuteAction so that continuations also run with this task scheduler
+                        tcs.SetException(e);
+                    }
+                });
             });
             return tcs.Task;
         }
@@ -1033,19 +1035,20 @@ namespace AmbientServices
             }
             worker.Invoke(() =>
             {
-                try
+                ExecuteAction(() =>
                 {
-                    ExecuteAction(() => 
-                    { 
+                    try
+                    {
                         action();
                         // run SetResult inside ExecuteAction so that continuations also run with this task scheduler
-                        tcs.SetResult(true); 
-                    });
-                }
-                catch (Exception e)
-                {
-                    tcs.SetException(e);
-                }
+                        tcs.SetResult(true);
+                    }
+                    catch (Exception e)
+                    {
+                        // run SetException inside ExecuteAction so that continuations also run with this task scheduler
+                        tcs.SetException(e);
+                    }
+                });
             });
             return tcs.Task;
         }
