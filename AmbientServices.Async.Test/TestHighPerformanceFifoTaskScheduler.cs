@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -502,6 +503,135 @@ namespace AmbientServices.Test
             using HighPerformanceFifoTaskScheduler? scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(Worker));
             await scheduler.Run(() => Assert.AreEqual(testvalue, ali.Value));
             await scheduler.QueueWork(() => Assert.AreEqual(testvalue, ali.Value));
+        }
+        [TestMethod]
+        public async Task ExceptionHandling1()
+        {
+            using HighPerformanceFifoTaskScheduler scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(ExceptionHandling1));
+            scheduler.FireAndForget(() => throw new ExpectedException());
+            await Task.Delay(1000);
+        }
+        [TestMethod]
+        public async Task ExceptionHandling2()
+        {
+            using HighPerformanceFifoTaskScheduler scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(ExceptionHandling2));
+            Task? t = null;
+            try
+            {
+                t = ThrowExceptionAsyncTask();
+                await t;
+            }
+            catch
+            {
+            }
+            scheduler.QueueTaskDirect(t!);
+            await Task.Delay(1000);
+        }
+        [TestMethod]
+        public async Task ExceptionHandling3()
+        {
+            using HighPerformanceFifoTaskScheduler scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(ExceptionHandling3));
+            TaskCompletionSource<bool> tcs = new();
+            await ExpectException(async () => { scheduler.ExecuteActionWithTaskCompletionSource(() => throw new ExpectedException(), tcs); await tcs.Task; });
+            await Task.Delay(1000);
+        }
+        [TestMethod]
+        public async Task ExceptionHandling4()
+        {
+            using HighPerformanceFifoTaskScheduler scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(ExceptionHandling4));
+            await ExpectExceptionTask(() => scheduler.Run(() => throw new ExpectedException()));
+            await Task.Delay(1000);
+        }
+        [TestMethod]
+        public async Task ExceptionHandling5()
+        {
+            using HighPerformanceFifoTaskScheduler scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(ExceptionHandling5));
+            await ExpectException(async () => await scheduler.QueueWork(() => throw new ExpectedException()));
+            await Task.Delay(1000);
+        }
+        [TestMethod]
+        public async Task ExceptionHandling6()
+        {
+            using HighPerformanceFifoTaskScheduler scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(ExceptionHandling6));
+            await ExpectException(async () => await scheduler.QueueWork(ThrowExceptionAsync));
+            await Task.Delay(1000);
+        }
+        [TestMethod]
+        public async Task ExceptionHandling7()
+        {
+            using HighPerformanceFifoTaskScheduler scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(ExceptionHandling7));
+            await ExpectException(async () => await scheduler.QueueWork(ThrowExceptionAsyncType<int>));
+            await Task.Delay(1000);
+        }
+        [TestMethod]
+        public async Task ExceptionHandling8()
+        {
+            using HighPerformanceFifoTaskScheduler scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(ExceptionHandling8));
+            await ExpectException(async () => await scheduler.Run(() => throw new ExpectedException()));
+            await Task.Delay(1000);
+        }
+        [TestMethod]
+        public async Task ExceptionHandling9()
+        {
+            using HighPerformanceFifoTaskScheduler scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(ExceptionHandling9));
+            await ExpectException(async () => await scheduler.TransferWork(ThrowExceptionAsync));
+            await Task.Delay(1000);
+        }
+        [TestMethod]
+        public async Task ExceptionHandling10()
+        {
+            using HighPerformanceFifoTaskScheduler scheduler = HighPerformanceFifoTaskScheduler.Start(nameof(ExceptionHandling10));
+            await ExpectException(async () => await scheduler.TransferWork(ThrowExceptionAsyncType<int>));
+            await Task.Delay(1000);
+        }
+        private async Task ThrowExceptionAsyncTask()
+        {
+            await Task.Delay(100);
+            throw new ExpectedException();
+        }
+        private ValueTask ThrowExceptionAsync()
+        {
+            throw new ExpectedException();
+        }
+        private ValueTask<T> ThrowExceptionAsyncType<T>()
+        {
+            throw new ExpectedException();
+        }
+        private async ValueTask ExpectExceptionTask(Func<Task> t)
+        {
+            try
+            {
+                await t();
+                throw new InvalidOperationException();
+            }
+            catch (ExpectedException)
+            {
+                // ok!
+            }
+        }
+        private void ExpectException(Action a)
+        {
+            try
+            {
+                a();
+                throw new InvalidOperationException();
+            }
+            catch (ExpectedException)
+            {
+                // ok!
+            }
+        }
+        private async ValueTask ExpectException(Func<ValueTask> a)
+        {
+            try
+            {
+                await a();
+                throw new InvalidOperationException();
+            }
+            catch (ExpectedException)
+            {
+                // ok!
+            }
         }
     }
     public class FakeWork

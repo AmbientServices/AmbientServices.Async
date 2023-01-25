@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.Versioning;
 using System.Text;
@@ -116,6 +117,25 @@ namespace AmbientServices
         public override SynchronizationContext CreateCopy()
         {
             return this;
+        }
+    }
+    /// <summary>
+    /// A class that holds arguments for the unobserved exception arguments.
+    /// </summary>
+    public class UnobservedExceptionEventArgs : EventArgs
+    {
+        /// <summary>
+        /// Gets the <see cref="Exception"/> that was not handled.
+        /// </summary>
+        public Exception Exception { get; }
+
+        /// <summary>
+        /// Constructs an unhandled exception arguments from an exception.
+        /// </summary>
+        /// <param name="ex">The <see cref="Exception"/> that was not handled.</param>
+        public UnobservedExceptionEventArgs(Exception ex)
+        {
+            Exception = ex;
         }
     }
     /// <summary>
@@ -274,6 +294,10 @@ namespace AmbientServices
                                 // perform the work
                                 _actionToPerform.DynamicInvoke();
                             }
+                            catch (Exception ex)
+                            {
+                                _scheduler.RaiseUnobservedException(ex);
+                            }
                             finally
                             {
                                 _scheduler.SchedulerBusyWorkers?.Decrement();
@@ -401,6 +425,16 @@ namespace AmbientServices
         /// Gets the <see cref="SynchronizationContext"/> for this task scheduler.
         /// </summary>
         public SynchronizationContext SynchronizationContext => _synchronizationContext;
+
+        /// <summary>
+        /// An event that notifies scubscribers whenever an exception is thrown and not handled.
+        /// </summary>
+        public static event EventHandler<UnobservedExceptionEventArgs>? UnobservedException;
+
+        internal void RaiseUnobservedException(Exception ex)
+        {
+            UnobservedException?.Invoke(this, new UnobservedExceptionEventArgs(ex));
+        }
 
         internal bool Stopping => _stopMasterThread != 0;
         /// <summary>
@@ -803,6 +837,11 @@ namespace AmbientServices
             _readyWorkerList.Push(worker);
         }
 
+        /// <summary>
+        /// Executes an action using a <see cref="TaskCompletionSource{TResult}"/>.  Exceptions will not be thrown directly, but will instead be reflected in <paramref name="tcs"/>.
+        /// </summary>
+        /// <param name="action">The action to run.</param>
+        /// <param name="tcs">The <see cref="TaskCompletionSource{TResult}"/> to record the results (or exception) in.</param>
         internal void ExecuteActionWithTaskCompletionSource(Action action, TaskCompletionSource<bool> tcs)
         {
             // execute the action inline
@@ -847,12 +886,26 @@ namespace AmbientServices
         }
         /// <summary>
         /// Transfers asynchronous work to this scheduler, running it within the scheduler so that subsequent work also runs on this scheduler.
+        /// Exceptions are thrown from the function out to the caller.
         /// </summary>
         /// <param name="func">The asynchronous function that does the work.</param>
         public async ValueTask TransferWork(Func<ValueTask> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
-            await ExecuteTask(() => func()).ConfigureAwait(false);
+            TaskCompletionSource<bool> tcs = new();
+            await ExecuteTask(async () =>
+            {
+                try
+                {
+                    await func().ConfigureAwait(false);
+                    tcs.SetResult(true);
+                }
+                catch (Exception ex)
+                {
+                    tcs.SetException(ex);
+                }
+            }).ConfigureAwait(false);
+            await tcs.Task.ConfigureAwait(false);
         }
         /// <summary>
         /// Queues synchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline (synchronously) if not.
@@ -911,12 +964,18 @@ namespace AmbientServices
             }
             worker.Invoke(async () =>
             {
-                T val = await ExecuteTask(async () =>
+                await ExecuteTask(async () =>
                 {
-                    T ret = await func().ConfigureAwait(false);
-                    // run SetResult inside ExecuteTask so that continuations also run with this task scheduler
-                    tcs.SetResult(ret);
-                    return ret;
+                    try
+                    {
+                        T ret = await func().ConfigureAwait(false);
+                        // run SetResult inside ExecuteTask so that continuations also run with this task scheduler
+                        tcs.SetResult(ret);
+                    }
+                    catch (Exception ex)
+                    {
+                        tcs.SetException(ex);
+                    }
                 }).ConfigureAwait(false);
             });
             return await tcs.Task.ConfigureAwait(false);
@@ -949,13 +1008,19 @@ namespace AmbientServices
             {
                 await ExecuteTask(async () =>
                 {
-                    await func().ConfigureAwait(false);
-                    // run SetResult inside ExecuteTask so that continuations also run with this task scheduler
-                    tcs.SetResult(true);
+                    try
+                    {
+                        await func().ConfigureAwait(false);
+                        // run SetResult inside ExecuteTask so that continuations also run with this task scheduler
+                        tcs.SetResult(true);
+                    }
+                    catch (Exception ex)
+                    {
+                        tcs.SetException(ex);
+                    }
                 }).ConfigureAwait(false);
             });
-            await ExecuteTask(func).ConfigureAwait(false);
-            return;
+            await tcs.Task.ConfigureAwait(false);
         }
         /// <summary>
         /// Runs a long-running function asynchronously on a scheduler thread.
@@ -1097,6 +1162,10 @@ namespace AmbientServices
                 if (oldContext is not HighPerformanceFifoSynchronizationContext) SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
                 action();
             }
+            catch (Exception ex)
+            {
+                RaiseUnobservedException(ex);
+            }
             finally
             {
                 // the worker is no longer busy
@@ -1135,6 +1204,10 @@ namespace AmbientServices
                 if (oldContext is not HighPerformanceFifoSynchronizationContext) SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
                 await func().ConfigureAwait(false); // the whole point of this function is to execute the task in the high performance synchronization context
             }
+            catch (Exception ex)
+            {
+                RaiseUnobservedException(ex);
+            }
             finally
             {
                 // the worker is no longer busy
@@ -1160,16 +1233,21 @@ namespace AmbientServices
         }
         /// <summary>
         /// Queues the specified task to the high performance FIFO scheduler, or runs it immediately if there are no workers available.
+        /// Any exceptions will go to the unhandled exception handler.
         /// </summary>
         /// <param name="task">The <see cref="Task"/> which is to be executed.</param>
         protected override void QueueTask(Task task)
         {
             if (task == null) throw new ArgumentNullException(nameof(task));
             if (_stopMasterThread != 0) throw new ObjectDisposedException(nameof(HighPerformanceFifoTaskScheduler));
-            _ = QueueWork(() =>
+            Task t = QueueWork(() =>
             {
                 TryExecuteTask(task);
             });
+            _ = t.ContinueWith(t => 
+            {
+                if (t.Exception != null) RaiseUnobservedException(t.Exception);
+            }, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, this);
         }
         /// <summary>
         /// Attempts to execute the specified task inline.
