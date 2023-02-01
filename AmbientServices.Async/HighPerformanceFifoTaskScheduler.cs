@@ -882,7 +882,7 @@ namespace AmbientServices
         public async ValueTask<T> TransferWork<T>(Func<ValueTask<T>> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
-            return await ExecuteTask(() => func()).ConfigureAwait(false);
+            return await ExecuteTask(() => func());
         }
         /// <summary>
         /// Transfers asynchronous work to this scheduler, running it within the scheduler so that subsequent work also runs on this scheduler.
@@ -897,15 +897,15 @@ namespace AmbientServices
             {
                 try
                 {
-                    await func().ConfigureAwait(false);
+                    await func();
                     tcs.SetResult(true);
                 }
                 catch (Exception ex)
                 {
                     tcs.SetException(ex);
                 }
-            }).ConfigureAwait(false);
-            await tcs.Task.ConfigureAwait(false);
+            });
+            await tcs.Task;
         }
         /// <summary>
         /// Queues synchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline (synchronously) if not.
@@ -956,7 +956,7 @@ namespace AmbientServices
             {
                 ReportQueueMiss();
                 // execute the action "inline" (in this case, on the ambient task scheduler)
-                return await ExecuteTask(func).ConfigureAwait(false);
+                return await ExecuteTask(func);
             }
             else
             {
@@ -968,7 +968,7 @@ namespace AmbientServices
                 {
                     try
                     {
-                        T ret = await func().ConfigureAwait(false);
+                        T ret = await func();
                         // run SetResult inside ExecuteTask so that continuations also run with this task scheduler
                         tcs.SetResult(ret);
                     }
@@ -976,9 +976,9 @@ namespace AmbientServices
                     {
                         tcs.SetException(ex);
                     }
-                }).ConfigureAwait(false);
+                });
             });
-            return await tcs.Task.ConfigureAwait(false);
+            return await tcs.Task;
         }
 
         /// <summary>
@@ -997,7 +997,7 @@ namespace AmbientServices
             {
                 ReportQueueMiss();
                 // execute the action inline
-                await ExecuteTask(func).ConfigureAwait(false);
+                await ExecuteTask(func);
                 return;
             }
             else
@@ -1010,7 +1010,7 @@ namespace AmbientServices
                 {
                     try
                     {
-                        await func().ConfigureAwait(false);
+                        await func();
                         // run SetResult inside ExecuteTask so that continuations also run with this task scheduler
                         tcs.SetResult(true);
                     }
@@ -1018,9 +1018,9 @@ namespace AmbientServices
                     {
                         tcs.SetException(ex);
                     }
-                }).ConfigureAwait(false);
+                });
             });
-            await tcs.Task.ConfigureAwait(false);
+            await tcs.Task;
         }
         /// <summary>
         /// Runs a long-running function asynchronously on a scheduler thread.
@@ -1183,7 +1183,7 @@ namespace AmbientServices
             try
             {
                 if (oldContext is not HighPerformanceFifoSynchronizationContext) SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
-                return await func().ConfigureAwait(false); // the whole point of this function is to execute the task in the high performance synchronization context
+                return await func(); // the whole point of this function is to execute the task in the high performance synchronization context
             }
             finally
             {
@@ -1202,7 +1202,7 @@ namespace AmbientServices
             try
             {
                 if (oldContext is not HighPerformanceFifoSynchronizationContext) SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
-                await func().ConfigureAwait(false); // the whole point of this function is to execute the task in the high performance synchronization context
+                await func(); // the whole point of this function is to execute the task in the high performance synchronization context
             }
             catch (Exception ex)
             {

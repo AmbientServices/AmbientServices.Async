@@ -440,7 +440,7 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
                 cancel.ThrowIfCancellationRequested();
                 yield return t;
             }
-            await Task.CompletedTask.ConfigureAwait(false);
+            await Task.CompletedTask;
         }
 #endif
     }
@@ -465,7 +465,7 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
                 cancel.ThrowIfCancellationRequested();
                 yield return e.Current;
             }
-            await Task.CompletedTask.ConfigureAwait(false);
+            await Task.CompletedTask;
         }
 #endif
     }
@@ -557,7 +557,7 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
         {
             if (ae == null) throw new ArgumentNullException(nameof(ae));
             List<T> ret = new();
-            while (await ae.MoveNextAsync().ConfigureAwait(false))
+            while (await ae.MoveNextAsync())
             {
                 cancel.ThrowIfCancellationRequested();
                 ret.Add(ae.Current);
@@ -576,7 +576,7 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
         {
             if (ae == null) throw new ArgumentNullException(nameof(ae));
             List<T> ret = new();
-            while (await ae.MoveNextAsync().ConfigureAwait(false))
+            while (await ae.MoveNextAsync())
             {
                 cancel.ThrowIfCancellationRequested();
                 ret.Add(ae.Current);

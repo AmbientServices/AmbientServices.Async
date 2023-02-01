@@ -19,7 +19,7 @@ namespace AmbientServices.Test
         public static void AssemblyCleanup()
         {
             System.Threading.Tasks.ValueTask t = TraceBuffer.Flush();
-            t.ConfigureAwait(false).GetAwaiter().GetResult();
+            t.GetAwaiter().GetResult();
             HighPerformanceFifoTaskScheduler.Stop();
         }
     }
