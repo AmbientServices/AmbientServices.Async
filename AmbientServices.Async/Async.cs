@@ -365,7 +365,6 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
         /// <returns>A <see cref="ValueTask"/> for the iteration.</returns>
         /// <exception cref="ArgumentNullException">If <paramref name="asyncEnumerable"/> or <paramref name="action"/> are null.</exception>
         [DebuggerStepThrough]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2007:Consider calling ConfigureAwait on the awaited task", Justification = "The ConfigureAwait stuff is handled in Run")]
         public static async ValueTask AwaitForEach<T>(IAsyncEnumerable<T> asyncEnumerable, Action<T> action, CancellationToken cancel = default)
         {
             if (asyncEnumerable == null) throw new ArgumentNullException(nameof(asyncEnumerable));
@@ -391,7 +390,6 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
         /// <returns>A <see cref="ValueTask"/> for the iteration.</returns>
         /// <exception cref="ArgumentNullException">If <paramref name="asyncEnumerable"/> or <paramref name="func"/> are null.</exception>
         [DebuggerStepThrough]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2007:Consider calling ConfigureAwait on the awaited task", Justification = "The ConfigureAwait stuff is handled in Run")]
         public static async ValueTask AwaitForEach<T>(IAsyncEnumerable<T> asyncEnumerable, Func<T, CancellationToken, ValueTask> func, CancellationToken cancel = default)
         {
             if (asyncEnumerable == null) throw new ArgumentNullException(nameof(asyncEnumerable));
@@ -521,7 +519,6 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
         /// <param name="ae">The <see cref="IAsyncEnumerable{T}"/>.</param>
         /// <param name="cancel">A <see cref="CancellationToken"/> the caller can use to cancel the operation before it completes.</param>
         /// <returns>An enumeration of all the items in the async enumerator.</returns>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2007:Consider calling ConfigureAwait on the awaited task", Justification = "The ConfigureAwait stuff is handled in Run")]
         public static async ValueTask<IEnumerable<T>> ToEnumerableAsync<T>(this IAsyncEnumerable<T> ae, CancellationToken cancel = default)
         {
             // there may be a more efficient way to do this, but I haven't been able to find it
@@ -591,7 +588,6 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
         /// <param name="ae">The <see cref="IAsyncEnumerator{T}"/>.</param>
         /// <param name="cancel">A <see cref="CancellationToken"/> the caller can use to cancel the operation before it completes.</param>
         /// <returns>An enumeration of all the items in the async enumerator.</returns>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2007:Consider calling ConfigureAwait on the awaited task", Justification = "The ConfigureAwait stuff is handled in Run")]
         public static async ValueTask<IEnumerable<T>> ToEnumerableAsync<T>(this IAsyncEnumerator<T> ae, CancellationToken cancel = default)
         {
             // there may be a more efficient way to do this, but I haven't been able to find it

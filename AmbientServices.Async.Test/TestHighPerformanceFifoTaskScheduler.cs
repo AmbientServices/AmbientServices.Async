@@ -163,7 +163,7 @@ namespace AmbientServices.Test
             for (int i = 0; i < 100; ++i)
             {
                 FakeWork w = new(i, true);
-                tasks.Add(HighPerformanceFifoTaskScheduler.Default.QueueWork(() => w.DoMixedWorkAsync(CancellationToken.None, false)).AsTask());
+                tasks.Add(HighPerformanceFifoTaskScheduler.Default.QueueWork(() => w.DoMixedWorkAsync(CancellationToken.None, false)));
             }
             await Task.WhenAll(tasks.ToArray());
             HighPerformanceFifoTaskScheduler.Default.Reset();
@@ -199,7 +199,7 @@ namespace AmbientServices.Test
             for (int i = 0; i < 1000; ++i)
             {
                 FakeWork w = new(i, true);
-                tasks.Add(HighPerformanceFifoTaskScheduler.Default.QueueWork(async () => { await w.DoMixedWorkAsync(CancellationToken.None, false); return true; }).AsTask());
+                tasks.Add(HighPerformanceFifoTaskScheduler.Default.QueueWork(async () => { await w.DoMixedWorkAsync(CancellationToken.None, false); return true; }));
             }
             await Task.WhenAll(tasks.ToArray());
             HighPerformanceFifoTaskScheduler.Default.Reset();
@@ -387,8 +387,8 @@ namespace AmbientServices.Test
             await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => HighPerformanceFifoTaskScheduler.Default.Run<int>(null!));
             Assert.ThrowsException<ArgumentNullException>(() => HighPerformanceFifoTaskScheduler.Default.Run(null!));
             Assert.ThrowsException<ArgumentNullException>(() => HighPerformanceFifoTaskScheduler.Default.FireAndForget(null!));
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => HighPerformanceFifoTaskScheduler.Default.QueueWork((Func<ValueTask>)null!).AsTask());
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => HighPerformanceFifoTaskScheduler.Default.QueueWork((Func<ValueTask<int>>)null!).AsTask());
+            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => HighPerformanceFifoTaskScheduler.Default.QueueWork((Func<ValueTask>)null!));
+            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => HighPerformanceFifoTaskScheduler.Default.QueueWork((Func<ValueTask<int>>)null!));
             await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => HighPerformanceFifoTaskScheduler.Default.QueueWork((Action)null!));
             await Assert.ThrowsExceptionAsync<ExpectedException>(() => HighPerformanceFifoTaskScheduler.Default.Run<int>(() => throw new ExpectedException()));
             await Assert.ThrowsExceptionAsync<ExpectedException>(() => HighPerformanceFifoTaskScheduler.Default.Run(() => throw new ExpectedException()));

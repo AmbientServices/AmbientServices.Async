@@ -879,33 +879,26 @@ namespace AmbientServices
         /// </summary>
         /// <typeparam name="T">The type returned by the function.</typeparam>
         /// <param name="func">The asynchronous function that does the work.</param>
-        public async ValueTask<T> TransferWork<T>(Func<ValueTask<T>> func)
+        public ValueTask<T> TransferWork<T>(Func<ValueTask<T>> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
-            return await ExecuteTask(() => func());
+            return ExecuteTask(async () =>
+            {
+                return await func().ConfigureAwait(true);
+            });
         }
         /// <summary>
         /// Transfers asynchronous work to this scheduler, running it within the scheduler so that subsequent work also runs on this scheduler.
         /// Exceptions are thrown from the function out to the caller.
         /// </summary>
         /// <param name="func">The asynchronous function that does the work.</param>
-        public async ValueTask TransferWork(Func<ValueTask> func)
+        public ValueTask TransferWork(Func<ValueTask> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
-            TaskCompletionSource<bool> tcs = new();
-            await ExecuteTask(async () =>
+            return ExecuteTask(async () =>
             {
-                try
-                {
-                    await func();
-                    tcs.SetResult(true);
-                }
-                catch (Exception ex)
-                {
-                    tcs.SetException(ex);
-                }
+                await func().ConfigureAwait(true);
             });
-            await tcs.Task;
         }
         /// <summary>
         /// Queues synchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline (synchronously) if not.
@@ -944,7 +937,7 @@ namespace AmbientServices
         /// </summary>
         /// <typeparam name="T">The type returned by the function.</typeparam>
         /// <param name="func">The asynchronous function that does the work.</param>
-        public async ValueTask<T> QueueWork<T>(Func<ValueTask<T>> func)
+        public Task<T> QueueWork<T>(Func<ValueTask<T>> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
             TaskCompletionSource<T> tcs = new();
@@ -956,20 +949,20 @@ namespace AmbientServices
             {
                 ReportQueueMiss();
                 // execute the action "inline" (in this case, on the ambient task scheduler)
-                return await ExecuteTask(func);
+                return ExecuteTask(func).AsTask();
             }
             else
             {
                 Debug.Assert(!worker.IsBusy);
             }
-            worker.Invoke(async () =>
+            worker.Invoke(() =>
             {
-                await ExecuteTask(async () =>
+                ExecuteAction(async () =>
                 {
                     try
                     {
                         T ret = await func();
-                        // run SetResult inside ExecuteTask so that continuations also run with this task scheduler
+                        // run SetResult inside ExecuteAction so that continuations also run with this task scheduler
                         tcs.SetResult(ret);
                     }
                     catch (Exception ex)
@@ -978,14 +971,14 @@ namespace AmbientServices
                     }
                 });
             });
-            return await tcs.Task;
+            return tcs.Task;
         }
 
         /// <summary>
         /// Queues asynchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline if not.
         /// </summary>
         /// <param name="func">The asynchronous function that does the work.</param>
-        public async ValueTask QueueWork(Func<ValueTask> func)
+        public Task QueueWork(Func<ValueTask> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
             TaskCompletionSource<bool> tcs = new();
@@ -997,21 +990,20 @@ namespace AmbientServices
             {
                 ReportQueueMiss();
                 // execute the action inline
-                await ExecuteTask(func);
-                return;
+                return ExecuteTask(func).AsTask();
             }
             else
             {
                 Debug.Assert(!worker.IsBusy);
             }
-            worker.Invoke(async () =>
+            worker.Invoke(() =>
             {
-                await ExecuteTask(async () =>
+                ExecuteAction(async () =>
                 {
                     try
                     {
                         await func();
-                        // run SetResult inside ExecuteTask so that continuations also run with this task scheduler
+                        // run SetResult inside ExecuteAction so that continuations also run with this task scheduler
                         tcs.SetResult(true);
                     }
                     catch (Exception ex)
@@ -1020,7 +1012,7 @@ namespace AmbientServices
                     }
                 });
             });
-            await tcs.Task;
+            return tcs.Task;
         }
         /// <summary>
         /// Runs a long-running function asynchronously on a scheduler thread.
@@ -1150,6 +1142,11 @@ namespace AmbientServices
                 ExecuteAction(() => { action(); });
             });
         }
+        /// <summary>
+        /// Runs the specified action in the context of the high performance FIFO task scheduler.
+        /// If the action contains awaits (as in an async void function), continuations will run in the context of the high performance FIFO task scheduler.
+        /// </summary>
+        /// <param name="action">The <see cref="Action"/> to run.</param>
         private void ExecuteAction(Action action)
         {
             System.Threading.SynchronizationContext? oldContext = SynchronizationContext.Current;
@@ -1173,6 +1170,12 @@ namespace AmbientServices
                 SynchronizationContext.SetSynchronizationContext(oldContext);
             }
         }
+        /// <summary>
+        /// Executes an asynchronous function with the high performance FIFO task scheduler as the default synchronization context.
+        /// This function must not be awaited because awaits outside of this context may cause continuations to run outside of this task scheduler.
+        /// </summary>
+        /// <typeparam name="T">The type that will be returned from the async function.</typeparam>
+        /// <param name="func">The async function to invoke within the context of the high performance FIFO task scheduler.</param>
         private async ValueTask<T> ExecuteTask<T>(Func<ValueTask<T>> func)
         {
             System.Threading.SynchronizationContext? oldContext = SynchronizationContext.Current;
@@ -1183,7 +1186,7 @@ namespace AmbientServices
             try
             {
                 if (oldContext is not HighPerformanceFifoSynchronizationContext) SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
-                return await func(); // the whole point of this function is to execute the task in the high performance synchronization context
+                return await func().ConfigureAwait(true); // the whole point of this function is to execute the task in the high performance synchronization context
             }
             finally
             {
@@ -1192,6 +1195,11 @@ namespace AmbientServices
                 SynchronizationContext.SetSynchronizationContext(oldContext);
             }
         }
+        /// <summary>
+        /// Executes an asynchronous function with the high performance FIFO task scheduler as the default synchronization context.
+        /// This function must not be awaited because awaits outside of this context may cause continuations to run outside of this task scheduler.
+        /// </summary>
+        /// <param name="func">The async function to invoke within the context of the high performance FIFO task scheduler.</param>
         private async ValueTask ExecuteTask(Func<ValueTask> func)
         {
             System.Threading.SynchronizationContext? oldContext = SynchronizationContext.Current;
@@ -1202,11 +1210,7 @@ namespace AmbientServices
             try
             {
                 if (oldContext is not HighPerformanceFifoSynchronizationContext) SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
-                await func(); // the whole point of this function is to execute the task in the high performance synchronization context
-            }
-            catch (Exception ex)
-            {
-                RaiseUnobservedException(ex);
+                await func().ConfigureAwait(true); // the whole point of this function is to execute the task in the high performance synchronization context
             }
             finally
             {
