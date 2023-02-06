@@ -875,7 +875,7 @@ namespace AmbientServices
         }
 
         /// <summary>
-        /// Transfers asynchronous work to this scheduler, running it within the scheduler so that subsequent work also runs on this scheduler.
+        /// Transfers asynchronous work to this scheduler, running continuations within the scheduler so that subsequent work also runs on this scheduler.
         /// </summary>
         /// <typeparam name="T">The type returned by the function.</typeparam>
         /// <param name="func">The asynchronous function that does the work.</param>
@@ -888,7 +888,7 @@ namespace AmbientServices
             });
         }
         /// <summary>
-        /// Transfers asynchronous work to this scheduler, running it within the scheduler so that subsequent work also runs on this scheduler.
+        /// Transfers asynchronous work to this scheduler, running continuations within the scheduler so that subsequent work also runs on this scheduler.
         /// Exceptions are thrown from the function out to the caller.
         /// </summary>
         /// <param name="func">The asynchronous function that does the work.</param>
@@ -901,7 +901,7 @@ namespace AmbientServices
             });
         }
         /// <summary>
-        /// Queues synchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline (synchronously) if not.
+        /// Queues synchronous work to this scheduler, running continuations within the scheduler if workers are available, and running it inline (synchronously) if not.
         /// </summary>
         /// <param name="action">The action to run.</param>
         /// <returns>A <see cref="Task"/> representing the work, no matter whether it was scheduled on a worker thread or run inline.</returns>
@@ -933,7 +933,7 @@ namespace AmbientServices
         }
 
         /// <summary>
-        /// Queues asynchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline if not.
+        /// Queues asynchronous work to this scheduler, running everything within the scheduler if workers are available, and running inline, with continuations in the scheduler if not.
         /// </summary>
         /// <typeparam name="T">The type returned by the function.</typeparam>
         /// <param name="func">The asynchronous function that does the work.</param>
@@ -948,7 +948,7 @@ namespace AmbientServices
             if (worker is null || Stopping)
             {
                 ReportQueueMiss();
-                // execute the action "inline" (in this case, on the ambient task scheduler)
+                // execute the action "inline" (in this case, on the ambient task scheduler, but run continuations using the scheduler)
                 return ExecuteTask(func).AsTask();
             }
             else
@@ -975,7 +975,7 @@ namespace AmbientServices
         }
 
         /// <summary>
-        /// Queues asynchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline if not.
+        /// Queues asynchronous work to this scheduler, running everything within the scheduler if workers are available, and running inline, with continuations in the scheduler if not.
         /// </summary>
         /// <param name="func">The asynchronous function that does the work.</param>
         public Task QueueWork(Func<ValueTask> func)
@@ -989,7 +989,7 @@ namespace AmbientServices
             if (worker is null || Stopping)
             {
                 ReportQueueMiss();
-                // execute the action inline
+                // execute the task "inline" (in this case, on the ambient task scheduler, but run continuations using the scheduler)
                 return ExecuteTask(func).AsTask();
             }
             else
@@ -1015,9 +1015,9 @@ namespace AmbientServices
             return tcs.Task;
         }
         /// <summary>
-        /// Runs a long-running function asynchronously on a scheduler thread.
+        /// Runs a long-running function, running it entirely on a scheduler thread.
         /// </summary>
-        /// <param name="func">The func to run asynchronously.  The function cannot be "async void" but may be async.  If async, this function returns a "wrapped" task.</param>
+        /// <param name="func">The func to run on a scheduler thread.  The function may be async but should not be "async void" (use <see cref="Run(Action)"/> for those).  If async, this function returns a "wrapped" task.</param>
         /// <returns>A <see cref="Task"/> which may be used to wait for the action to complete.  Presumably you want the result, or you would have used <see cref="FireAndForget(Action)"/>.</returns>
         /// <remarks>Exceptions thrown from the function will be available to be observed through the returned <see cref="Task"/>.</remarks>
         public Task<T> Run<T>(Func<T> func)
@@ -1062,9 +1062,9 @@ namespace AmbientServices
             return tcs.Task;
         }
         /// <summary>
-        /// Runs a long-running action asynchronously on a scheduler thread, but gets a <see cref="Task"/> we can use wait for completion when it does finally finish or get canceled.
+        /// Runs a long-running action, running it entirely on a scheduler thread, but gets a <see cref="Task"/> we can use wait for completion when it does finally finish or get canceled.
         /// </summary>
-        /// <param name="action">The action to run asynchronously.  May be an "async void" action.</param>
+        /// <param name="action">The action to run on a scheduler thread.  May be an "async void" action.</param>
         /// <returns>A <see cref="Task"/> which may be used to wait for the function to complete after it is cancelled (or exits on its own).</returns>
         /// <remarks>Exceptions thrown from the function will be available to be observed through the returned <see cref="Task"/>.</remarks>
         public Task Run(Action action)
@@ -1110,7 +1110,7 @@ namespace AmbientServices
             return tcs.Task;
         }
         /// <summary>
-        /// Runs a fire-and-forget action asynchronously on a scheduler thread.
+        /// Runs a fire-and-forget action, running it entirely on a scheduler thread.
         /// </summary>
         /// <param name="action">The action to run asynchronously.  May be an "async void" action.</param>
         /// <remarks>Note that exceptions throw from <paramref name="action"/> will be unobserved.</remarks>
@@ -1144,7 +1144,7 @@ namespace AmbientServices
         }
         /// <summary>
         /// Runs the specified action in the context of the high performance FIFO task scheduler.
-        /// If the action contains awaits (as in an async void function), continuations will run in the context of the high performance FIFO task scheduler.
+        /// Everything up to the first await will run inline, but continuations will run in the context of the high performance FIFO task scheduler.
         /// </summary>
         /// <param name="action">The <see cref="Action"/> to run.</param>
         private void ExecuteAction(Action action)
