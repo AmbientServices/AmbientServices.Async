@@ -317,19 +317,6 @@ public class TestHighPerformanceFifoTaskScheduler
         await HighPerformanceFifoTaskScheduler.Default.Run(() => w.DoMixedWorkAsync());
     }
     [TestMethod]
-    public async Task QueueSingleSynchronousWorkItem()
-    {
-        // fire and forget the work, discarding the returned task (it may not finish running until after the test is marked as successful--sometimes this is what you want, but usually not--we're just testing it here)
-        await HighPerformanceFifoTaskScheduler.Default.QueueWork(() => { /* do my work here */ });
-    }
-    [TestMethod]
-    public async Task QueueSingleAsynchronousWorkItem()
-    {
-        FakeWork w = new(-1, true);
-        // fire and forget the work, discarding the returned task (it may not finish running until after the test is marked as successful--sometimes this is what you want, but usually not--we're just testing it here)
-        await HighPerformanceFifoTaskScheduler.Default.QueueWork(() => w.DoMixedWorkAsync());
-    }
-    [TestMethod]
     public async Task StartNew()
     {
         List<Task> tasks = new();
@@ -356,23 +343,23 @@ public class FakeWork
     {
         ulong hash = GetHash(_id);
 
-        Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
+        Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default, TaskScheduler.Current);
         for (int outer = 0; outer < (int)(hash % 256); ++outer)
         {
             Stopwatch cpu = Stopwatch.StartNew();
             CpuWork(hash);
             cpu.Stop();
-            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
+            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default, TaskScheduler.Current);
             Stopwatch mem = Stopwatch.StartNew();
             MemoryWork(hash);
             mem.Stop();
-            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
+            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default, TaskScheduler.Current);
             Stopwatch io = Stopwatch.StartNew();
             // simulate I/O by sleeping
             Thread.Sleep((int)((hash >> 32) % (_fast ? 5UL : 500UL)));
             io.Stop();
         }
-        Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
+        Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default, TaskScheduler.Current);
     }
     public async ValueTask DoMixedWorkAsync(CancellationToken cancel = default)
     {
@@ -380,24 +367,24 @@ public class FakeWork
         await Task.Yield();
         //string? threadName = Thread.CurrentThread.Name;
 
-        Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
+        Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default, TaskScheduler.Current);
         for (int outer = 0; outer < (int)(hash % 256) && !cancel.IsCancellationRequested; ++outer)
         {
             Stopwatch cpu = Stopwatch.StartNew();
             CpuWork(hash);
             cpu.Stop();
-            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
+            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default, TaskScheduler.Current);
             Stopwatch mem = Stopwatch.StartNew();
             MemoryWork(hash);
             mem.Stop();
-            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
+            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default, TaskScheduler.Current);
             Stopwatch io = Stopwatch.StartNew();
             // simulate I/O by blocking
             await Task.Delay((int)((hash >> 32) % (_fast ? 5UL : 500UL)), cancel);
             io.Stop();
-            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
+            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default, TaskScheduler.Current);
         }
-        Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default.SynchronizationContext, SynchronizationContext.Current);
+        Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default, TaskScheduler.Current);
         //Debug.WriteLine($"Ran work {_id} on {threadName}!", "Work");
     }
     private void CpuWork(ulong hash)

@@ -74,6 +74,7 @@ namespace AmbientServices
         {
         }
     }
+#if false
     /// <summary>
     /// A <see cref="SynchronizationContext"/> that schedules work items on the <see cref="HighPerformanceFifoTaskScheduler"/>.
     /// </summary>
@@ -119,6 +120,7 @@ namespace AmbientServices
             return this;
         }
     }
+#endif
     /// <summary>
     /// A class that holds arguments for the unobserved exception arguments.
     /// </summary>
@@ -385,8 +387,6 @@ namespace AmbientServices
         /// </summary>
         public static new HighPerformanceFifoTaskScheduler Default => DefaultTaskScheduler;
 
-        private readonly HighPerformanceFifoSynchronizationContext _synchronizationContext;
-
         internal readonly IAmbientStatistic? SchedulerInvocations;
         internal readonly IAmbientStatistic? SchedulerInvocationTime;
         internal readonly IAmbientStatistic? SchedulerWorkersCreated;
@@ -420,11 +420,6 @@ namespace AmbientServices
         private long _lastScaleUpTime;                                  // keeps track of the last time a scale up
         private long _lastScaleDownTime;                                // keeps track of the last time a scale down
         private long _lastResetTime;                                    // keeps track of the last time a reset happened
-
-        /// <summary>
-        /// Gets the <see cref="SynchronizationContext"/> for this task scheduler.
-        /// </summary>
-        public SynchronizationContext SynchronizationContext => _synchronizationContext;
 
         /// <summary>
         /// An event that notifies scubscribers whenever an exception is thrown and not handled.
@@ -552,8 +547,6 @@ namespace AmbientServices
         }
         private HighPerformanceFifoTaskScheduler(string schedulerName, ThreadPriority priority = ThreadPriority.Normal, IAmbientStatistics? statistics = null, int schedulerMasterFrequencyMilliseconds = 1000, int bufferThreadCount = 0, int maxThreads = 0, bool testMode = false)
         {
-            _synchronizationContext = new HighPerformanceFifoSynchronizationContext(this);
-
             // save the scheduler name and priority
             _statistics = statistics ?? _AmbientStatistics.Local;
             _schedulerName = schedulerName;
@@ -879,26 +872,26 @@ namespace AmbientServices
         /// </summary>
         /// <typeparam name="T">The type returned by the function.</typeparam>
         /// <param name="func">The asynchronous function that does the work.</param>
-        public ValueTask<T> TransferWork<T>(Func<ValueTask<T>> func)
+        public Task<T> TransferWork<T>(Func<ValueTask<T>> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
-            return ExecuteTask(async () =>
+            return Task.Factory.StartNew(() => ExecuteTask(async () =>
             {
-                return await func().ConfigureAwait(true);
-            });
+                return await func();
+            }).AsTask(), CancellationToken.None, TaskCreationOptions.None, this).Unwrap();
         }
         /// <summary>
         /// Transfers asynchronous work to this scheduler, running continuations within the scheduler so that subsequent work also runs on this scheduler.
         /// Exceptions are thrown from the function out to the caller.
         /// </summary>
         /// <param name="func">The asynchronous function that does the work.</param>
-        public ValueTask TransferWork(Func<ValueTask> func)
+        public Task TransferWork(Func<ValueTask> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
-            return ExecuteTask(async () =>
+            return Task.Factory.StartNew(() => ExecuteTask(async () =>
             {
-                await func().ConfigureAwait(true);
-            });
+                await func();
+            }).AsTask(), CancellationToken.None, TaskCreationOptions.None, this).Unwrap();
         }
         /// <summary>
         /// Queues synchronous work to this scheduler, running continuations within the scheduler if workers are available, and running it inline (synchronously) if not.
@@ -906,9 +899,10 @@ namespace AmbientServices
         /// <param name="action">The action to run.</param>
         /// <returns>A <see cref="Task"/> representing the work, no matter whether it was scheduled on a worker thread or run inline.</returns>
         /// <remarks>Exceptions thrown from <paramref name="action"/> are placed into the returned <see cref="Task"/>.</remarks>
-        public Task QueueWork(Action action)
+        internal Task QueueWork(Action action)
         {
             if (action == null) throw new ArgumentNullException(nameof(action));
+
             TaskCompletionSource<bool> tcs = new();
             SchedulerInvocations?.Increment();
             // try to get a ready thread
@@ -937,7 +931,7 @@ namespace AmbientServices
         /// </summary>
         /// <typeparam name="T">The type returned by the function.</typeparam>
         /// <param name="func">The asynchronous function that does the work.</param>
-        public Task<T> QueueWork<T>(Func<ValueTask<T>> func)
+        internal Task<T> QueueWork<T>(Func<ValueTask<T>> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
             TaskCompletionSource<T> tcs = new();
@@ -978,7 +972,7 @@ namespace AmbientServices
         /// Queues asynchronous work to this scheduler, running everything within the scheduler if workers are available, and running inline, with continuations in the scheduler if not.
         /// </summary>
         /// <param name="func">The asynchronous function that does the work.</param>
-        public Task QueueWork(Func<ValueTask> func)
+        internal Task QueueWork(Func<ValueTask> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
             TaskCompletionSource<bool> tcs = new();
@@ -1043,9 +1037,10 @@ namespace AmbientServices
             {
                 Debug.Assert(!worker.IsBusy);
             }
-            worker.Invoke(() =>
+
+            worker.Invoke(() => ExecuteAction(() =>
             {
-                ExecuteAction(() =>
+                _ = Task.Factory.StartNew(() => 
                 {
                     try
                     {
@@ -1057,8 +1052,8 @@ namespace AmbientServices
                         // run SetException inside ExecuteAction so that continuations also run with this task scheduler
                         tcs.SetException(e);
                     }
-                });
-            });
+                }, CancellationToken.None, TaskCreationOptions.None, this);
+            }));
             return tcs.Task;
         }
         /// <summary>
@@ -1090,14 +1085,14 @@ namespace AmbientServices
             {
                 Debug.Assert(!worker.IsBusy);
             }
-            worker.Invoke(() =>
+            worker.Invoke(() => ExecuteAction(() =>
             {
-                ExecuteAction(() =>
+                _ = Task.Factory.StartNew(() => 
                 {
                     try
                     {
                         action();
-                        // run SetResult inside ExecuteAction so that continuations also run with this task scheduler
+                        // run SetResult inside ExecuteAction so that any continuations also run with this task scheduler
                         tcs.SetResult(true);
                     }
                     catch (Exception e)
@@ -1105,8 +1100,8 @@ namespace AmbientServices
                         // run SetException inside ExecuteAction so that continuations also run with this task scheduler
                         tcs.SetException(e);
                     }
-                });
-            });
+                }, CancellationToken.None, TaskCreationOptions.None, this);
+            }));
             return tcs.Task;
         }
         /// <summary>
@@ -1139,7 +1134,7 @@ namespace AmbientServices
             }
             worker.Invoke(() =>
             {
-                ExecuteAction(() => { action(); });
+                ExecuteAction(() => _ = Task.Factory.StartNew(action, CancellationToken.None, TaskCreationOptions.None, this));
             });
         }
         /// <summary>
@@ -1149,14 +1144,12 @@ namespace AmbientServices
         /// <param name="action">The <see cref="Action"/> to run.</param>
         private void ExecuteAction(Action action)
         {
-            System.Threading.SynchronizationContext? oldContext = SynchronizationContext.Current;
             // we now have a worker that is busy
             Interlocked.Increment(ref _busyWorkers);
             // keep track of the maximum concurrent usage
             InterlockedUtilities.TryOptomisticMax(ref _peakConcurrentUsageSinceLastRetirementCheck, _busyWorkers);
             try
             {
-                if (oldContext is not HighPerformanceFifoSynchronizationContext) SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
                 action();
             }
             catch (Exception ex)
@@ -1167,7 +1160,6 @@ namespace AmbientServices
             {
                 // the worker is no longer busy
                 Interlocked.Decrement(ref _busyWorkers);
-                SynchronizationContext.SetSynchronizationContext(oldContext);
             }
         }
         /// <summary>
@@ -1178,21 +1170,18 @@ namespace AmbientServices
         /// <param name="func">The async function to invoke within the context of the high performance FIFO task scheduler.</param>
         private async ValueTask<T> ExecuteTask<T>(Func<ValueTask<T>> func)
         {
-            System.Threading.SynchronizationContext? oldContext = SynchronizationContext.Current;
             // we now have a worker that is busy
             Interlocked.Increment(ref _busyWorkers);
             // keep track of the maximum concurrent usage
             InterlockedUtilities.TryOptomisticMax(ref _peakConcurrentUsageSinceLastRetirementCheck, _busyWorkers);
             try
             {
-                if (oldContext is not HighPerformanceFifoSynchronizationContext) SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
-                return await func().ConfigureAwait(true); // the whole point of this function is to execute the task in the high performance synchronization context
+                return await func(); // the whole point of this function is to execute the task in the high performance synchronization context
             }
             finally
             {
                 // the worker is no longer busy
                 Interlocked.Decrement(ref _busyWorkers);
-                SynchronizationContext.SetSynchronizationContext(oldContext);
             }
         }
         /// <summary>
@@ -1202,21 +1191,18 @@ namespace AmbientServices
         /// <param name="func">The async function to invoke within the context of the high performance FIFO task scheduler.</param>
         private async ValueTask ExecuteTask(Func<ValueTask> func)
         {
-            System.Threading.SynchronizationContext? oldContext = SynchronizationContext.Current;
             // we now have a worker that is busy
             Interlocked.Increment(ref _busyWorkers);
             // keep track of the maximum concurrent usage
             InterlockedUtilities.TryOptomisticMax(ref _peakConcurrentUsageSinceLastRetirementCheck, _busyWorkers);
             try
             {
-                if (oldContext is not HighPerformanceFifoSynchronizationContext) SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
-                await func().ConfigureAwait(true); // the whole point of this function is to execute the task in the high performance synchronization context
+                await func(); // the whole point of this function is to execute the task in the high performance synchronization context
             }
             finally
             {
                 // the worker is no longer busy
                 Interlocked.Decrement(ref _busyWorkers);
-                SynchronizationContext.SetSynchronizationContext(oldContext);
             }
         }
         internal IEnumerable<Task> GetScheduledTasksDirect()

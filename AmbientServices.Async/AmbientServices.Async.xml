@@ -10,14 +10,14 @@
             When migrating code from sync to async, begin from the bottom off the call stack.
             Use <see cref="M:AmbientServices.Async.RunSync(System.Func{System.Threading.Tasks.ValueTask})"/> or <see cref="M:AmbientServices.Async.RunTaskSync(System.Func{System.Threading.Tasks.Task})"/> at the transition from sync to async, forcing the task to run in a synchronous ambient context.
             Use await <see cref="M:AmbientServices.Async.Run(System.Func{System.Threading.Tasks.ValueTask})"/> or <see cref="M:AmbientServices.Async.RunTask(System.Func{System.Threading.Tasks.Task})"/> as the default asynchronous invocation, which will run synchronously in a synchronous ambient context, and asynchronously in an asynchronous ambient context.
-            Use await <see cref="M:AmbientServices.Async.RunAsync(System.Func{System.Threading.Tasks.ValueTask})"/> <see cref="M:AmbientServices.Async.RunTaskAsync(System.Func{System.Threading.Tasks.Task})"/> to force asynchronous execution within a synchronous ambient context (even within <see cref="M:AmbientServices.Async.RunSync(System.Func{System.Threading.Tasks.ValueTask})"/>).
+            Use await <see cref="!:RunAsync(Func&lt;ValueTask&gt;)"/> <see cref="!:RunTaskAsync(Func&lt;Task&gt;)"/> to force asynchronous execution within a synchronous ambient context (even within <see cref="M:AmbientServices.Async.RunSync(System.Func{System.Threading.Tasks.ValueTask})"/>).
             As migration progresses, calls to <see cref="M:AmbientServices.Async.RunSync(System.Func{System.Threading.Tasks.ValueTask})"/> and <see cref="M:AmbientServices.Async.RunTaskSync(System.Func{System.Threading.Tasks.Task})"/> move up the call stack, being gradually replaced by calls to <see cref="M:AmbientServices.Async.Run(System.Func{System.Threading.Tasks.ValueTask})"/> or <see cref="M:AmbientServices.Async.RunTask(System.Func{System.Threading.Tasks.Task})"/>.
             Calls that use await without one of these as the target will run asynchonously in a newly spawned async ambient context.
             </summary>
         </member>
-        <member name="P:AmbientServices.Async.MultithreadedContext">
+        <member name="P:AmbientServices.Async.DefaultAsyncContext">
             <summary>
-            Gets a multithreaded context to use for spawning tasks to the multithreaded context from within a synchronous context.
+            Gets or sets the default async context, which will be used when forcing tasks to the async context from within a synchronous context for example when calling <see cref="M:AmbientServices.Async.RunAsync(System.Func{System.Threading.Tasks.ValueTask},System.Threading.SynchronizationContext)"/> without specifying an explicit context.
             </summary>
         </member>
         <member name="P:AmbientServices.Async.SinglethreadedContext">
@@ -62,33 +62,37 @@
             </summary>
             <param name="a">The cancelable asynchronous action to run.</param>
         </member>
-        <member name="M:AmbientServices.Async.RunTaskAsync(System.Func{System.Threading.Tasks.Task})">
+        <member name="M:AmbientServices.Async.RunTaskAsync(System.Func{System.Threading.Tasks.Task},System.Threading.SynchronizationContext)">
             <summary>
             Runs the specified asynchronous action asynchronously and switches the ambient synchronization context to the asynchronous one during the operation.
             Use this to run the action in an asynchronous ambient context, but wait on the current thread for it to finish.
             </summary>
             <param name="a">The asynchronous action to run.</param>
+            <param name="context">The <see cref="T:System.Threading.SynchronizationContext"/> to use to asynchronously run the task, or null to use <see cref="P:AmbientServices.Async.DefaultAsyncContext"/>.</param>
         </member>
-        <member name="M:AmbientServices.Async.RunTaskAsync``1(System.Func{System.Threading.Tasks.Task{``0}})">
+        <member name="M:AmbientServices.Async.RunTaskAsync``1(System.Func{System.Threading.Tasks.Task{``0}},System.Threading.SynchronizationContext)">
             <summary>
             Runs the specified asynchronous action asynchronously and switches the ambient synchronization context to the asynchronous one during the operation.
             Use this to run the action in an asynchronous ambient context, but wait on the current thread for it to finish.
             </summary>
             <param name="a">The cancelable asynchronous action to run.</param>
+            <param name="context">The <see cref="T:System.Threading.SynchronizationContext"/> to use to asynchronously run the task, or null to use <see cref="P:AmbientServices.Async.DefaultAsyncContext"/>.</param>
         </member>
-        <member name="M:AmbientServices.Async.RunAsync(System.Func{System.Threading.Tasks.ValueTask})">
+        <member name="M:AmbientServices.Async.RunAsync(System.Func{System.Threading.Tasks.ValueTask},System.Threading.SynchronizationContext)">
             <summary>
             Runs the specified asynchronous action asynchronously and switches the ambient synchronization context to the asynchronous one during the operation.
             Use this to run the action in an asynchronous ambient context, but wait on the current thread for it to finish.
             </summary>
             <param name="a">The cancelable asynchronous action to run.</param>
+            <param name="context">The <see cref="T:System.Threading.SynchronizationContext"/> to use to asynchronously run the task, or null to use <see cref="P:AmbientServices.Async.DefaultAsyncContext"/>.</param>
         </member>
-        <member name="M:AmbientServices.Async.RunAsync``1(System.Func{System.Threading.Tasks.ValueTask{``0}})">
+        <member name="M:AmbientServices.Async.RunAsync``1(System.Func{System.Threading.Tasks.ValueTask{``0}},System.Threading.SynchronizationContext)">
             <summary>
             Runs the specified asynchronous action asynchronously and switches the ambient synchronization context to the asynchronous one during the operation.
             Use this to run the action in an asynchronous ambient context, but wait on the current thread for it to finish.
             </summary>
             <param name="a">The cancelable asynchronous action to run.</param>
+            <param name="context">The <see cref="T:System.Threading.SynchronizationContext"/> to use to asynchronously run the task, or null to use <see cref="P:AmbientServices.Async.DefaultAsyncContext"/>.</param>
         </member>
         <member name="M:AmbientServices.Async.RunTaskSync(System.Func{System.Threading.Tasks.Task})">
             <summary>
@@ -427,6 +431,22 @@
             </summary>
             <returns>The same singleton <see cref="T:AmbientServices.HighPerformanceFifoSynchronizationContext"/> on which we were called.</returns>
         </member>
+        <member name="T:AmbientServices.UnobservedExceptionEventArgs">
+            <summary>
+            A class that holds arguments for the unobserved exception arguments.
+            </summary>
+        </member>
+        <member name="P:AmbientServices.UnobservedExceptionEventArgs.Exception">
+            <summary>
+            Gets the <see cref="P:AmbientServices.UnobservedExceptionEventArgs.Exception"/> that was not handled.
+            </summary>
+        </member>
+        <member name="M:AmbientServices.UnobservedExceptionEventArgs.#ctor(System.Exception)">
+            <summary>
+            Constructs an unhandled exception arguments from an exception.
+            </summary>
+            <param name="ex">The <see cref="P:AmbientServices.UnobservedExceptionEventArgs.Exception"/> that was not handled.</param>
+        </member>
         <member name="T:AmbientServices.HighPerformanceFifoWorker">
             <summary>
             A worker which contains a thread and various other objects needed to use the thread.  Disposes of itself when the thread is stopped.
@@ -461,6 +481,11 @@
         <member name="P:AmbientServices.HighPerformanceFifoTaskScheduler.SynchronizationContext">
             <summary>
             Gets the <see cref="P:AmbientServices.HighPerformanceFifoTaskScheduler.SynchronizationContext"/> for this task scheduler.
+            </summary>
+        </member>
+        <member name="E:AmbientServices.HighPerformanceFifoTaskScheduler.UnobservedException">
+            <summary>
+            An event that notifies scubscribers whenever an exception is thrown and not handled.
             </summary>
         </member>
         <member name="P:AmbientServices.HighPerformanceFifoTaskScheduler.LastScaleUp">
@@ -552,9 +577,44 @@
             Tells the scheduler master thread to reset because we've just finished a massively parallel operation has finished and excess threads are no longer needed.
             </summary>
         </member>
+        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.ExecuteActionWithTaskCompletionSource(System.Action,System.Threading.Tasks.TaskCompletionSource{System.Boolean})">
+            <summary>
+            Executes an action using a <see cref="T:System.Threading.Tasks.TaskCompletionSource`1"/>.  Exceptions will not be thrown directly, but will instead be reflected in <paramref name="tcs"/>.
+            </summary>
+            <param name="action">The action to run.</param>
+            <param name="tcs">The <see cref="T:System.Threading.Tasks.TaskCompletionSource`1"/> to record the results (or exception) in.</param>
+        </member>
+        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.Send(System.Threading.SendOrPostCallback,System.Object)">
+            <summary>
+            Synchronously posts a message.
+            </summary>
+            <param name="d">The message to post.</param>
+            <param name="state">The state to give to the post callback.</param>
+        </member>
+        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.Post(System.Threading.SendOrPostCallback,System.Object)">
+            <summary>
+            Posts a message.
+            </summary>
+            <param name="d">The message to post.</param>
+            <param name="state">The state to give to the post callback.</param>
+        </member>
+        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.TransferWork``1(System.Func{System.Threading.Tasks.ValueTask{``0}})">
+            <summary>
+            Transfers asynchronous work to this scheduler, running continuations within the scheduler so that subsequent work also runs on this scheduler.
+            </summary>
+            <typeparam name="T">The type returned by the function.</typeparam>
+            <param name="func">The asynchronous function that does the work.</param>
+        </member>
+        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.TransferWork(System.Func{System.Threading.Tasks.ValueTask})">
+            <summary>
+            Transfers asynchronous work to this scheduler, running continuations within the scheduler so that subsequent work also runs on this scheduler.
+            Exceptions are thrown from the function out to the caller.
+            </summary>
+            <param name="func">The asynchronous function that does the work.</param>
+        </member>
         <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.QueueWork(System.Action)">
             <summary>
-            Queues synchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline (synchronously) if not.
+            Queues synchronous work to this scheduler, running continuations within the scheduler if workers are available, and running it inline (synchronously) if not.
             </summary>
             <param name="action">The action to run.</param>
             <returns>A <see cref="T:System.Threading.Tasks.Task"/> representing the work, no matter whether it was scheduled on a worker thread or run inline.</returns>
@@ -562,39 +622,61 @@
         </member>
         <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.QueueWork``1(System.Func{System.Threading.Tasks.ValueTask{``0}})">
             <summary>
-            Queues asynchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline if not.
+            Queues asynchronous work to this scheduler, running everything within the scheduler if workers are available, and running inline, with continuations in the scheduler if not.
             </summary>
             <typeparam name="T">The type returned by the function.</typeparam>
             <param name="func">The asynchronous function that does the work.</param>
         </member>
         <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.QueueWork(System.Func{System.Threading.Tasks.ValueTask})">
             <summary>
-            Queues asynchronous work to this scheduler, running it within the scheduler if workers are available, and running it inline if not.
+            Queues asynchronous work to this scheduler, running everything within the scheduler if workers are available, and running inline, with continuations in the scheduler if not.
             </summary>
             <param name="func">The asynchronous function that does the work.</param>
         </member>
         <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.Run``1(System.Func{``0})">
             <summary>
-            Runs a long-running function asynchronously on a scheduler thread.
+            Runs a long-running function, running it entirely on a scheduler thread.
             </summary>
-            <param name="func">The func to run asynchronously.  The function cannot be "async void" but may be async.  If async, this function returns a "wrapped" task.</param>
+            <param name="func">The func to run on a scheduler thread.  The function may be async but should not be "async void" (use <see cref="M:AmbientServices.HighPerformanceFifoTaskScheduler.Run(System.Action)"/> for those).  If async, this function returns a "wrapped" task.</param>
             <returns>A <see cref="T:System.Threading.Tasks.Task"/> which may be used to wait for the action to complete.  Presumably you want the result, or you would have used <see cref="M:AmbientServices.HighPerformanceFifoTaskScheduler.FireAndForget(System.Action)"/>.</returns>
             <remarks>Exceptions thrown from the function will be available to be observed through the returned <see cref="T:System.Threading.Tasks.Task"/>.</remarks>
         </member>
         <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.Run(System.Action)">
             <summary>
-            Runs a long-running action asynchronously on a scheduler thread, but gets a <see cref="T:System.Threading.Tasks.Task"/> we can use wait for completion when it does finally finish or get canceled.
+            Runs a long-running action, running it entirely on a scheduler thread, but gets a <see cref="T:System.Threading.Tasks.Task"/> we can use wait for completion when it does finally finish or get canceled.
             </summary>
-            <param name="action">The action to run asynchronously.  May be an "async void" action.</param>
+            <param name="action">The action to run on a scheduler thread.  May be an "async void" action.</param>
             <returns>A <see cref="T:System.Threading.Tasks.Task"/> which may be used to wait for the function to complete after it is cancelled (or exits on its own).</returns>
             <remarks>Exceptions thrown from the function will be available to be observed through the returned <see cref="T:System.Threading.Tasks.Task"/>.</remarks>
         </member>
         <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.FireAndForget(System.Action)">
             <summary>
-            Runs a fire-and-forget action asynchronously on a scheduler thread.
+            Runs a fire-and-forget action, running it entirely on a scheduler thread.
             </summary>
             <param name="action">The action to run asynchronously.  May be an "async void" action.</param>
             <remarks>Note that exceptions throw from <paramref name="action"/> will be unobserved.</remarks>
+        </member>
+        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.ExecuteAction(System.Action)">
+            <summary>
+            Runs the specified action in the context of the high performance FIFO task scheduler.
+            Everything up to the first await will run inline, but continuations will run in the context of the high performance FIFO task scheduler.
+            </summary>
+            <param name="action">The <see cref="T:System.Action"/> to run.</param>
+        </member>
+        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.ExecuteTask``1(System.Func{System.Threading.Tasks.ValueTask{``0}})">
+            <summary>
+            Executes an asynchronous function with the high performance FIFO task scheduler as the default synchronization context.
+            This function must not be awaited because awaits outside of this context may cause continuations to run outside of this task scheduler.
+            </summary>
+            <typeparam name="T">The type that will be returned from the async function.</typeparam>
+            <param name="func">The async function to invoke within the context of the high performance FIFO task scheduler.</param>
+        </member>
+        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.ExecuteTask(System.Func{System.Threading.Tasks.ValueTask})">
+            <summary>
+            Executes an asynchronous function with the high performance FIFO task scheduler as the default synchronization context.
+            This function must not be awaited because awaits outside of this context may cause continuations to run outside of this task scheduler.
+            </summary>
+            <param name="func">The async function to invoke within the context of the high performance FIFO task scheduler.</param>
         </member>
         <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.GetScheduledTasks">
             <summary>
@@ -605,6 +687,7 @@
         <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.QueueTask(System.Threading.Tasks.Task)">
             <summary>
             Queues the specified task to the high performance FIFO scheduler, or runs it immediately if there are no workers available.
+            Any exceptions will go to the unhandled exception handler.
             </summary>
             <param name="task">The <see cref="T:System.Threading.Tasks.Task"/> which is to be executed.</param>
         </member>
@@ -620,6 +703,20 @@
             <summary>
             Gets the maximum number of tasks that can be concurrently running under this scheduler.
             </summary>
+        </member>
+        <member name="T:AmbientServices.TaskSchedulerExtensions">
+            <summary>
+            A class that contains extensions for <see cref="T:System.Threading.Tasks.TaskScheduler"/>.
+            </summary>
+        </member>
+        <member name="M:AmbientServices.TaskSchedulerExtensions.StartNewWork(System.Threading.Tasks.TaskScheduler,System.Action)">
+            <summary>
+            Runs a long-running action, always running it entirely on a scheduler thread, but gets a <see cref="T:System.Threading.Tasks.Task"/> we can use wait for completion when it does finally finish or get canceled.
+            </summary>
+            <param name="scheduler">The <see cref="T:System.Threading.Tasks.TaskScheduler"/> to use.</param>
+            <param name="action">The action to run on a scheduler thread.  May be an "async void" action.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task"/> which may be used to wait for the function to complete after it is cancelled (or exits on its own).</returns>
+            <remarks>Exceptions thrown from the function will be available to be observed through the returned <see cref="T:System.Threading.Tasks.Task"/>.</remarks>
         </member>
         <member name="T:AmbientServices.InterlockedSinglyLinkedList`1">
             <summary>
