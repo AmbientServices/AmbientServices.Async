@@ -392,7 +392,7 @@ namespace AmbientServices
 #endif
 
         // initialize this here to be sure all the above values have been set (it uses many of them)
-        private static readonly FifoTaskScheduler DefaultTaskScheduler = FifoTaskScheduler.Start("Default", ThreadPriority.Normal, false);
+        private static readonly FifoTaskScheduler DefaultTaskScheduler = FifoTaskScheduler.Start("FIFO Default", ThreadPriority.Normal, false);
 
         /// <summary>
         /// Gets the default <see cref="FifoTaskScheduler"/>, one with normal priorities.

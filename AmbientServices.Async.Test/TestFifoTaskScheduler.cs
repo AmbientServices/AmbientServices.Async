@@ -587,11 +587,19 @@ namespace AmbientServices.Test
             }
         }
         [TestMethod]
-        public async Task AmbientThreadSchedulerSwitching()
+        public async Task StartNewAmbientThreadSchedulerSwitching()
         {
-            using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(AmbientThreadSchedulerSwitching));
+            using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(StartNewAmbientThreadSchedulerSwitching));
             TaskCompletionSource<bool> completion = new();
             await Task.Factory.StartNew(() => VerifyTaskSchedulerRemainsCustom(), CancellationToken.None, TaskCreationOptions.None, scheduler).Unwrap();
+        }
+        [TestMethod]
+        public async Task TransferWorkAmbientThreadSchedulerSwitching()
+        {
+            await FifoTaskScheduler.Default.TransferWork(async () => 
+            {
+                await VerifyTaskSchedulerRemainsCustom();
+            });
         }
 
         private async Task VerifyTaskSchedulerRemainsCustom()
