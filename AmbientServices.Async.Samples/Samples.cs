@@ -245,7 +245,7 @@ public abstract class AsynchronousLongRunningTask
 
     public AsynchronousLongRunningTask()
     {
-        _longRunningTask = HighPerformanceFifoTaskScheduler.Default.Run(() => Loop(_stop.Token));
+        _longRunningTask = FifoTaskScheduler.Default.Run(() => Loop(_stop.Token));
     }
 
     public ValueTask Start()
@@ -283,16 +283,16 @@ namespace Tests // 2021-12-29: under net6.0 currently, tests cannot be discovere
 {
 #region HPFTS
 /// <summary>
-/// Unit tests for <see cref="HighPerformanceFifoTaskScheduler"/>.
+/// Unit tests for <see cref="FifoTaskScheduler"/>.
 /// </summary>
 [TestClass]
-public class TestHighPerformanceFifoTaskScheduler
+public class TestFifoTaskScheduler
 {
     [TestMethod]
     public void StartFireAndForgetWork()
     {
         // fire and forget the work, discarding the returned task (it may not finish running until after the test is marked as successful--sometimes this is what you want, but usually not--we're just testing it here)
-        HighPerformanceFifoTaskScheduler.Default.FireAndForget(() =>
+        FifoTaskScheduler.Default.FireAndForget(() =>
         {
             while (true)
             {
@@ -314,7 +314,7 @@ public class TestHighPerformanceFifoTaskScheduler
     {
         FakeWork w = new(-2, false);
         // push the work over to the high performance scheduler, leaving this thread to do other async work in the mean time
-        await HighPerformanceFifoTaskScheduler.Default.Run(() => w.DoMixedWorkAsync());
+        await FifoTaskScheduler.Default.Run(() => w.DoMixedWorkAsync());
     }
     [TestMethod]
     public async Task StartNew()
@@ -324,7 +324,7 @@ public class TestHighPerformanceFifoTaskScheduler
         {
             FakeWork w = new(i, true);
             // note the use of AsTask here because Task.WaitAll might await the resulting Task more than once (it probably doesn't, but just to be safe...)
-            tasks.Add(HighPerformanceFifoTaskFactory.Default.StartNew(() => w.DoMixedSyncWork()));
+            tasks.Add(FifoTaskFactory.Default.StartNew(() => w.DoMixedSyncWork()));
         }
         await Task.WhenAll(tasks.ToArray());
     }
@@ -343,23 +343,23 @@ public class FakeWork
     {
         ulong hash = GetHash(_id);
 
-        Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default, TaskScheduler.Current);
+        Assert.AreEqual(FifoTaskScheduler.Default, TaskScheduler.Current);
         for (int outer = 0; outer < (int)(hash % 256); ++outer)
         {
             Stopwatch cpu = Stopwatch.StartNew();
             CpuWork(hash);
             cpu.Stop();
-            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default, TaskScheduler.Current);
+            Assert.AreEqual(FifoTaskScheduler.Default, TaskScheduler.Current);
             Stopwatch mem = Stopwatch.StartNew();
             MemoryWork(hash);
             mem.Stop();
-            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default, TaskScheduler.Current);
+            Assert.AreEqual(FifoTaskScheduler.Default, TaskScheduler.Current);
             Stopwatch io = Stopwatch.StartNew();
             // simulate I/O by sleeping
             Thread.Sleep((int)((hash >> 32) % (_fast ? 5UL : 500UL)));
             io.Stop();
         }
-        Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default, TaskScheduler.Current);
+        Assert.AreEqual(FifoTaskScheduler.Default, TaskScheduler.Current);
     }
     public async ValueTask DoMixedWorkAsync(CancellationToken cancel = default)
     {
@@ -367,24 +367,24 @@ public class FakeWork
         await Task.Yield();
         //string? threadName = Thread.CurrentThread.Name;
 
-        Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default, TaskScheduler.Current);
+        Assert.AreEqual(FifoTaskScheduler.Default, TaskScheduler.Current);
         for (int outer = 0; outer < (int)(hash % 256) && !cancel.IsCancellationRequested; ++outer)
         {
             Stopwatch cpu = Stopwatch.StartNew();
             CpuWork(hash);
             cpu.Stop();
-            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default, TaskScheduler.Current);
+            Assert.AreEqual(FifoTaskScheduler.Default, TaskScheduler.Current);
             Stopwatch mem = Stopwatch.StartNew();
             MemoryWork(hash);
             mem.Stop();
-            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default, TaskScheduler.Current);
+            Assert.AreEqual(FifoTaskScheduler.Default, TaskScheduler.Current);
             Stopwatch io = Stopwatch.StartNew();
             // simulate I/O by blocking
             await Task.Delay((int)((hash >> 32) % (_fast ? 5UL : 500UL)), cancel);
             io.Stop();
-            Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default, TaskScheduler.Current);
+            Assert.AreEqual(FifoTaskScheduler.Default, TaskScheduler.Current);
         }
-        Assert.AreEqual(HighPerformanceFifoTaskScheduler.Default, TaskScheduler.Current);
+        Assert.AreEqual(FifoTaskScheduler.Default, TaskScheduler.Current);
         //Debug.WriteLine($"Ran work {_id} on {threadName}!", "Work");
     }
     private void CpuWork(ulong hash)

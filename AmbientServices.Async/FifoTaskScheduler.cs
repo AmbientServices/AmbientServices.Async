@@ -17,78 +17,78 @@ using static System.Collections.Specialized.BitVector32;
 namespace AmbientServices
 {
     /// <summary>
-    /// A <see cref="TaskFactory"/> that uses the <see cref="HighPerformanceFifoTaskScheduler"/> to schedule tasks.
+    /// A <see cref="TaskFactory"/> that uses the <see cref="FifoTaskScheduler"/> to schedule tasks.
     /// </summary>
 #if NET5_0_OR_GREATER
     [UnsupportedOSPlatform("browser")]
 #endif
-    public sealed class HighPerformanceFifoTaskFactory : TaskFactory
+    public sealed class FifoTaskFactory : TaskFactory
     {
-        private static readonly HighPerformanceFifoTaskFactory _DefaultTaskFactory = new();
+        private static readonly FifoTaskFactory _DefaultTaskFactory = new();
         /// <summary>
-        /// Gets the default <see cref="HighPerformanceFifoTaskFactory"/>.
+        /// Gets the default <see cref="FifoTaskFactory"/>.
         /// </summary>
-        public static HighPerformanceFifoTaskFactory Default => _DefaultTaskFactory;
+        public static FifoTaskFactory Default => _DefaultTaskFactory;
         /// <summary>
-        /// Constructs a <see cref="TaskFactory"/> that uses the <see cref="HighPerformanceFifoTaskScheduler.Default"/> task scheduler.
+        /// Constructs a <see cref="TaskFactory"/> that uses the <see cref="FifoTaskScheduler.Default"/> task scheduler.
         /// </summary>
-        public HighPerformanceFifoTaskFactory()
-            : this(CancellationToken.None, TaskCreationOptions.PreferFairness | TaskCreationOptions.LongRunning | TaskCreationOptions.RunContinuationsAsynchronously, TaskContinuationOptions.PreferFairness | TaskContinuationOptions.LongRunning, HighPerformanceFifoTaskScheduler.Default)
+        public FifoTaskFactory()
+            : this(CancellationToken.None, TaskCreationOptions.PreferFairness | TaskCreationOptions.LongRunning | TaskCreationOptions.RunContinuationsAsynchronously, TaskContinuationOptions.PreferFairness | TaskContinuationOptions.LongRunning, FifoTaskScheduler.Default)
         {
         }
         /// <summary>
-        /// Initializes a <see cref="HighPerformanceFifoTaskFactory"/> instance with the specified configuration.
+        /// Initializes a <see cref="FifoTaskFactory"/> instance with the specified configuration.
         /// </summary>
         /// <param name="cancellationToken">The default <see cref="CancellationToken"/> to use for tasks that are started without an explicit <see cref="CancellationToken"/>.</param>
-        public HighPerformanceFifoTaskFactory(CancellationToken cancellationToken)
-            : this(cancellationToken, TaskCreationOptions.PreferFairness | TaskCreationOptions.LongRunning | TaskCreationOptions.RunContinuationsAsynchronously, TaskContinuationOptions.PreferFairness | TaskContinuationOptions.LongRunning, HighPerformanceFifoTaskScheduler.Default)
+        public FifoTaskFactory(CancellationToken cancellationToken)
+            : this(cancellationToken, TaskCreationOptions.PreferFairness | TaskCreationOptions.LongRunning | TaskCreationOptions.RunContinuationsAsynchronously, TaskContinuationOptions.PreferFairness | TaskContinuationOptions.LongRunning, FifoTaskScheduler.Default)
         {
         }
         /// <summary>
-        /// Initializes a <see cref="HighPerformanceFifoTaskFactory"/> instance with the specified configuration.
+        /// Initializes a <see cref="FifoTaskFactory"/> instance with the specified configuration.
         /// </summary>
-        /// <param name="scheduler">The default <see cref="HighPerformanceFifoTaskScheduler"/> to use.</param>
-        public HighPerformanceFifoTaskFactory(HighPerformanceFifoTaskScheduler scheduler)
+        /// <param name="scheduler">The default <see cref="FifoTaskScheduler"/> to use.</param>
+        public FifoTaskFactory(FifoTaskScheduler scheduler)
             : this(CancellationToken.None, TaskCreationOptions.PreferFairness | TaskCreationOptions.LongRunning | TaskCreationOptions.RunContinuationsAsynchronously, TaskContinuationOptions.PreferFairness | TaskContinuationOptions.LongRunning, scheduler)
         {
         }
         /// <summary>
-        /// Initializes a <see cref="HighPerformanceFifoTaskFactory"/> instance with the specified configuration.
+        /// Initializes a <see cref="FifoTaskFactory"/> instance with the specified configuration.
         /// </summary>
         /// <param name="creationOptions">A set of <see cref="TaskCreationOptions"/> controlling task creation.</param>
         /// <param name="continuationOptions">A set of <see cref="TaskContinuationOptions"/> controlling task continuations.</param>
-        public HighPerformanceFifoTaskFactory(TaskCreationOptions creationOptions, TaskContinuationOptions continuationOptions)
-            : this(CancellationToken.None, creationOptions, continuationOptions, HighPerformanceFifoTaskScheduler.Default)
+        public FifoTaskFactory(TaskCreationOptions creationOptions, TaskContinuationOptions continuationOptions)
+            : this(CancellationToken.None, creationOptions, continuationOptions, FifoTaskScheduler.Default)
         {
         }
         /// <summary>
-        /// Initializes a <see cref="HighPerformanceFifoTaskFactory"/> instance with the specified configuration.
+        /// Initializes a <see cref="FifoTaskFactory"/> instance with the specified configuration.
         /// </summary>
         /// <param name="cancellationToken">The default <see cref="CancellationToken"/> to use for tasks that are started without an explicit <see cref="CancellationToken"/>.</param>
         /// <param name="creationOptions">A set of <see cref="TaskCreationOptions"/> controlling task creation.</param>
         /// <param name="continuationOptions">A set of <see cref="TaskContinuationOptions"/> controlling task continuations.</param>
-        /// <param name="scheduler">The default <see cref="HighPerformanceFifoTaskScheduler"/> to use.</param>
+        /// <param name="scheduler">The default <see cref="FifoTaskScheduler"/> to use.</param>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1068:CancellationToken parameters must come last", Justification = "Just following .NET lead here")]
-        public HighPerformanceFifoTaskFactory(CancellationToken cancellationToken, TaskCreationOptions creationOptions, TaskContinuationOptions continuationOptions, HighPerformanceFifoTaskScheduler scheduler)
+        public FifoTaskFactory(CancellationToken cancellationToken, TaskCreationOptions creationOptions, TaskContinuationOptions continuationOptions, FifoTaskScheduler scheduler)
             : base(cancellationToken, creationOptions, continuationOptions, scheduler)
         {
         }
     }
 #if false
     /// <summary>
-    /// A <see cref="SynchronizationContext"/> that schedules work items on the <see cref="HighPerformanceFifoTaskScheduler"/>.
+    /// A <see cref="SynchronizationContext"/> that schedules work items on the <see cref="FifoTaskScheduler"/>.
     /// </summary>
 #if NET5_0_OR_GREATER
     [UnsupportedOSPlatform("browser")]
 #endif
-    internal class HighPerformanceFifoSynchronizationContext : SynchronizationContext
+    internal class FifoSynchronizationContext : SynchronizationContext
     {
-        private readonly HighPerformanceFifoTaskScheduler _scheduler;
+        private readonly FifoTaskScheduler _scheduler;
 
-        internal HighPerformanceFifoSynchronizationContext(HighPerformanceFifoTaskScheduler? scheduler = null)
+        internal FifoSynchronizationContext(FifoTaskScheduler? scheduler = null)
         {
             SetWaitNotificationRequired();
-            _scheduler = scheduler ?? HighPerformanceFifoTaskScheduler.Default;
+            _scheduler = scheduler ?? FifoTaskScheduler.Default;
         }
 
         /// <summary>
@@ -112,9 +112,9 @@ namespace AmbientServices
             _ = _scheduler.QueueWork(() => d(state));
         }
         /// <summary>
-        /// Creates a "copy" of this <see cref="HighPerformanceFifoSynchronizationContext"/>, which in this case just returns the singleton instance because there is nothing held in memory anyway.
+        /// Creates a "copy" of this <see cref="FifoSynchronizationContext"/>, which in this case just returns the singleton instance because there is nothing held in memory anyway.
         /// </summary>
-        /// <returns>The same singleton <see cref="HighPerformanceFifoSynchronizationContext"/> on which we were called.</returns>
+        /// <returns>The same singleton <see cref="FifoSynchronizationContext"/> on which we were called.</returns>
         public override SynchronizationContext CreateCopy()
         {
             return this;
@@ -141,16 +141,28 @@ namespace AmbientServices
         }
     }
     /// <summary>
+    /// A class that holds arguments for the unobserved exception arguments.
+    /// </summary>
+    public class TaskInlinedEventArgs : EventArgs
+    {
+        /// <summary>
+        /// Constructs a task inlined arguments.
+        /// </summary>
+        public TaskInlinedEventArgs()
+        {
+        }
+    }
+    /// <summary>
     /// A worker which contains a thread and various other objects needed to use the thread.  Disposes of itself when the thread is stopped.
     /// </summary>
 #if NET5_0_OR_GREATER
     [UnsupportedOSPlatform("browser")]
 #endif
-    internal sealed class HighPerformanceFifoWorker : IntrusiveSinglyLinkedListNode, IDisposable
+    internal sealed class FifoWorker : IntrusiveSinglyLinkedListNode, IDisposable
     {
         private static long _SlowestInvocation;     // interlocked
 
-        private readonly HighPerformanceFifoTaskScheduler _scheduler;
+        private readonly FifoTaskScheduler _scheduler;
         private readonly string _schedulerName;
         private readonly string _id;
         private readonly Thread _thread;
@@ -160,13 +172,13 @@ namespace AmbientServices
         private long _invokeTicks;          // interlocked
         private int _stop;                  // interlocked
 
-        public static HighPerformanceFifoWorker Start(HighPerformanceFifoTaskScheduler scheduler, string id, ThreadPriority priority)
+        public static FifoWorker Start(FifoTaskScheduler scheduler, string id, ThreadPriority priority)
         {
-            HighPerformanceFifoWorker ret = new(scheduler, id, priority);
+            FifoWorker ret = new(scheduler, id, priority);
             ret.Start();
             return ret;
         }
-        private HighPerformanceFifoWorker(HighPerformanceFifoTaskScheduler scheduler, string id, ThreadPriority priority)
+        private FifoWorker(FifoTaskScheduler scheduler, string id, ThreadPriority priority)
         {
             _scheduler = scheduler;
             _schedulerName = scheduler.Name;
@@ -185,9 +197,9 @@ namespace AmbientServices
         }
 #if DEBUG
         private readonly string fStackAtConstruction = new StackTrace().ToString();
-        ~HighPerformanceFifoWorker()
+        ~FifoWorker()
         {
-            Debug.Fail($"{nameof(HighPerformanceFifoWorker)} '{_schedulerName}' instance not disposed!  Constructed at: {fStackAtConstruction}");
+            Debug.Fail($"{nameof(FifoWorker)} '{_schedulerName}' instance not disposed!  Constructed at: {fStackAtConstruction}");
             Dispose();
         }
 #endif
@@ -227,7 +239,7 @@ namespace AmbientServices
                 throw new InvalidOperationException("Worker thread already in use!");
             }
             // start the timer
-            Interlocked.Exchange(ref _invokeTicks, HighPerformanceFifoTaskScheduler.Ticks);
+            Interlocked.Exchange(ref _invokeTicks, FifoTaskScheduler.Ticks);
             // signal the thread to begin the work
             _wakeThread.Set();
             // we successfully issued the work request
@@ -238,12 +250,12 @@ namespace AmbientServices
         internal void Stop()
         {
             // record when we invoked the stop command
-            Interlocked.Exchange(ref _invokeTicks, HighPerformanceFifoTaskScheduler.Ticks);
+            Interlocked.Exchange(ref _invokeTicks, FifoTaskScheduler.Ticks);
             // mark for stopping
             Interlocked.Exchange(ref _stop, 1);
             // worker has retired!
             _scheduler.SchedulerWorkersRetired?.Increment();
-            HighPerformanceFifoTaskScheduler.Logger.Log(AmbientClock.UtcNow.ToShortTimeString() + ": Retiring worker: " + _id, "StartStop", AmbientLogLevel.Debug);
+            FifoTaskScheduler.Logger.Log(AmbientClock.UtcNow.ToShortTimeString() + ": Retiring worker: " + _id, "StartStop", AmbientLogLevel.Debug);
             // wake thread so it can exit gracefully
             _wakeThread.Set();
             // tell the thread it can dispose and exit
@@ -252,7 +264,7 @@ namespace AmbientServices
 
         internal static bool IsWorkerInternalMethod(MethodBase? method)
         {
-            if (method == null || method.DeclaringType != typeof(HighPerformanceFifoWorker)) return false;
+            if (method == null || method.DeclaringType != typeof(FifoWorker)) return false;
             return !method.IsPublic;
         }
 
@@ -265,28 +277,28 @@ namespace AmbientServices
                 _scheduler.SchedulerWorkers?.Increment();
                 try
                 {
-                    HighPerformanceFifoTaskScheduler.Logger.Log("Starting " + _id, "ThreadStartStop", AmbientLogLevel.Debug);
-                    long startTicks = HighPerformanceFifoTaskScheduler.Ticks;
+                    FifoTaskScheduler.Logger.Log("Starting " + _id, "ThreadStartStop", AmbientLogLevel.Debug);
+                    long startTicks = FifoTaskScheduler.Ticks;
                     long completionTicks = startTicks;
                     // loop until we're told to stop
                     while (_stop == 0 && !_scheduler.Stopping)
                     {
-                        startTicks = HighPerformanceFifoTaskScheduler.Ticks;
+                        startTicks = FifoTaskScheduler.Ticks;
                         completionTicks = startTicks;
                         // wait for the wake thread event to be signalled so we can start some work
-                        HighPerformanceFifoTaskScheduler.WaitForWork(_wakeThread);
+                        FifoTaskScheduler.WaitForWork(_wakeThread);
                         // stop now?
                         if (_stop != 0 || _scheduler.Stopping)
                         {
                             break;
                         }
                         // record the start time
-                        startTicks = HighPerformanceFifoTaskScheduler.Ticks;
+                        startTicks = FifoTaskScheduler.Ticks;
                         // NO work to execute? (just in case--I don't think this can ever really happen)
                         if (_actionToPerform == null)
                         {
                             // nothing to do, so we're done
-                            completionTicks = HighPerformanceFifoTaskScheduler.Ticks;
+                            completionTicks = FifoTaskScheduler.Ticks;
                         }
                         else
                         {
@@ -304,7 +316,7 @@ namespace AmbientServices
                             {
                                 _scheduler.SchedulerBusyWorkers?.Decrement();
                                 // mark the time
-                                completionTicks = HighPerformanceFifoTaskScheduler.Ticks;
+                                completionTicks = FifoTaskScheduler.Ticks;
                             }
                         }
                         // finish work in success case--we're done with the work, so get rid of it so we're ready for the next one
@@ -326,12 +338,12 @@ namespace AmbientServices
                             {
                                 maxInvokeTicks = invokeTicks;
                                 InterlockedUtilities.TryOptomisticMax(ref _SlowestInvocation, invokeTicks);
-                                _scheduler.SchedulerSlowestInvocationMilliseconds?.SetValue(_SlowestInvocation * 1000 / HighPerformanceFifoTaskScheduler.TicksPerSecond);
+                                _scheduler.SchedulerSlowestInvocationMilliseconds?.SetValue(_SlowestInvocation * 1000 / FifoTaskScheduler.TicksPerSecond);
                             }
                             _scheduler.SchedulerInvocationTime?.Add(invokeTicks);
                         }
                     }
-                    HighPerformanceFifoTaskScheduler.Logger.Log($"Exiting '{_id}' worker thread: max invocation wait={maxInvokeTicks * 1000.0f / HighPerformanceFifoTaskScheduler.TicksPerSecond}ms", "ThreadStartStop", AmbientLogLevel.Debug);
+                    FifoTaskScheduler.Logger.Log($"Exiting '{_id}' worker thread: max invocation wait={maxInvokeTicks * 1000.0f / FifoTaskScheduler.TicksPerSecond}ms", "ThreadStartStop", AmbientLogLevel.Debug);
                 }
                 finally
                 {
@@ -352,17 +364,17 @@ namespace AmbientServices
 #if NET5_0_OR_GREATER
     [UnsupportedOSPlatform("browser")]
 #endif
-    public sealed class HighPerformanceFifoTaskScheduler : TaskScheduler, IDisposable
+    public sealed class FifoTaskScheduler : TaskScheduler, IDisposable
     {
         private static readonly AmbientService<IAmbientStatistics> _AmbientStatistics = Ambient.GetService<IAmbientStatistics>();
-        internal static readonly AmbientLogger<HighPerformanceFifoTaskScheduler> Logger = new();
+        internal static readonly AmbientLogger<FifoTaskScheduler> Logger = new();
 
         private static readonly int LogicalCpuCount = GetProcessorCount();
         private static readonly int MaxWorkerThreads = LogicalCpuCount * MaxThreadsPerLogicalCpu;
         private static readonly int HighThreadCountWarningEnvironmentTicks = (int)TimeSpan.FromHours(1).Ticks;
         private static readonly float MinAddThreadsCpuUsage = Math.Max(0.95f, 1.0f - (0.5f / LogicalCpuCount));
         private static readonly CpuMonitor CpuMonitor = new(1000);
-        private static readonly ConcurrentHashSet<HighPerformanceFifoTaskScheduler> Schedulers = new();
+        private static readonly ConcurrentHashSet<FifoTaskScheduler> Schedulers = new();
 
         private const float MaxCpuUsage = 0.995f;
 #if DEBUG
@@ -380,12 +392,12 @@ namespace AmbientServices
 #endif
 
         // initialize this here to be sure all the above values have been set (it uses many of them)
-        private static readonly HighPerformanceFifoTaskScheduler DefaultTaskScheduler = HighPerformanceFifoTaskScheduler.Start("Default", ThreadPriority.Normal, false);
+        private static readonly FifoTaskScheduler DefaultTaskScheduler = FifoTaskScheduler.Start("Default", ThreadPriority.Normal, false);
 
         /// <summary>
-        /// Gets the default <see cref="HighPerformanceFifoTaskScheduler"/>, one with normal priorities.
+        /// Gets the default <see cref="FifoTaskScheduler"/>, one with normal priorities.
         /// </summary>
-        public static new HighPerformanceFifoTaskScheduler Default => DefaultTaskScheduler;
+        public static new FifoTaskScheduler Default => DefaultTaskScheduler;
 
         internal readonly IAmbientStatistic? SchedulerInvocations;
         internal readonly IAmbientStatistic? SchedulerInvocationTime;
@@ -406,7 +418,7 @@ namespace AmbientServices
         private readonly bool _testMode;
         private readonly Thread _schedulerMasterThread;
         private readonly ManualResetEvent _wakeSchedulerMasterThread = new(false);  // controls the master thread waking up
-        private readonly InterlockedSinglyLinkedList<HighPerformanceFifoWorker> _readyWorkerList = new();
+        private readonly InterlockedSinglyLinkedList<FifoWorker> _readyWorkerList = new();
         // everything from here down is interlocked
         private int _reset;                                             // triggers a one-time reset of the thread count back to the default buffer size
         private int _stopMasterThread;                                  // stops the master thread (shuts down the scheduler)            
@@ -425,6 +437,10 @@ namespace AmbientServices
         /// An event that notifies scubscribers whenever an exception is thrown and not handled.
         /// </summary>
         public static event EventHandler<UnobservedExceptionEventArgs>? UnobservedException;
+        /// <summary>
+        /// An event that notifies scubscribers whenever a task is inlined due to all threads currently being busy.
+        /// </summary>
+        public static event EventHandler<TaskInlinedEventArgs>? TaskInlined;
 
         internal void RaiseUnobservedException(Exception ex)
         {
@@ -462,7 +478,7 @@ namespace AmbientServices
         /// </summary>
         public static void Stop()
         {
-            foreach (HighPerformanceFifoTaskScheduler scheduler in Schedulers)
+            foreach (FifoTaskScheduler scheduler in Schedulers)
             {
                 scheduler.Dispose();
             }
@@ -497,20 +513,20 @@ namespace AmbientServices
             }
         }
         /// <summary>
-        /// Starts a new <see cref="HighPerformanceFifoTaskScheduler"/> with the specified configuration.
+        /// Starts a new <see cref="FifoTaskScheduler"/> with the specified configuration.
         /// </summary>
         /// <param name="schedulerName">The name of the task scheduler (used in logging and exceptions).</param>
         /// <param name="priority">The <see cref="ThreadPriority"/> for the threads that will be used ot execute the tasks.</param>
         /// <param name="executeDisposalCheck">Whether or not to verify that the instance is properly disposed.</param>
         /// <param name="statistics">An optional <see cref="IAmbientStatistics"/> to use for reporting statistics, if not specified or null, uses the ambient implementation.</param>
-        /// <returns>A new <see cref="HighPerformanceFifoTaskScheduler"/> instance.</returns>
-        public static HighPerformanceFifoTaskScheduler Start(string schedulerName, ThreadPriority priority, bool executeDisposalCheck, IAmbientStatistics? statistics = null)
+        /// <returns>A new <see cref="FifoTaskScheduler"/> instance.</returns>
+        public static FifoTaskScheduler Start(string schedulerName, ThreadPriority priority, bool executeDisposalCheck, IAmbientStatistics? statistics = null)
         {
-            HighPerformanceFifoTaskScheduler ret = new(schedulerName, priority, executeDisposalCheck, statistics);
+            FifoTaskScheduler ret = new(schedulerName, priority, executeDisposalCheck, statistics);
             ret.Start();
             return ret;
         }
-        private HighPerformanceFifoTaskScheduler (string scheduler, ThreadPriority priority, bool executeDisposalCheck, IAmbientStatistics? statistics = null)
+        private FifoTaskScheduler (string scheduler, ThreadPriority priority, bool executeDisposalCheck, IAmbientStatistics? statistics = null)
             : this(scheduler, priority, statistics)
         {
 #if DEBUG
@@ -519,33 +535,33 @@ namespace AmbientServices
         }
 
         /// <summary>
-        /// Starts a new <see cref="HighPerformanceFifoTaskScheduler"/> with the specified configuration.
+        /// Starts a new <see cref="FifoTaskScheduler"/> with the specified configuration.
         /// </summary>
         /// <param name="schedulerName">The name of the task scheduler (used in logging and exceptions).</param>
         /// <param name="priority">The <see cref="ThreadPriority"/> for the threads that will be used ot execute the tasks.</param>
-        /// <returns>A new <see cref="HighPerformanceFifoTaskScheduler"/> instance.</returns>
-        public static HighPerformanceFifoTaskScheduler Start(string schedulerName, ThreadPriority priority = ThreadPriority.Normal)
+        /// <returns>A new <see cref="FifoTaskScheduler"/> instance.</returns>
+        public static FifoTaskScheduler Start(string schedulerName, ThreadPriority priority = ThreadPriority.Normal)
         {
-            HighPerformanceFifoTaskScheduler ret = new(schedulerName, priority);
+            FifoTaskScheduler ret = new(schedulerName, priority);
             ret.Start();
             return ret;
         }
         /// <summary>
-        /// Starts a new <see cref="HighPerformanceFifoTaskScheduler"/> in test mode with the specified configuration.
+        /// Starts a new <see cref="FifoTaskScheduler"/> in test mode with the specified configuration.
         /// </summary>
         /// <param name="schedulerName">The name of the task scheduler (used in logging and exceptions).</param>
         /// <param name="schedulerMasterFrequencyMilliseconds">How many milliseconds to wait each time around the master scheduler loop, ie. the frequency with which to check to see if we should alter the number of worker threads.</param>
         /// <param name="bufferThreadCount">The number of threads to start with and to keep as a buffer after resetting.</param>
         /// <param name="maxThreads">The maximum number of threads to use, or zero to let the system decide.</param>
         /// <param name="statistics">An optional <see cref="IAmbientStatistics"/> to use for reporting statistics, if not specified or null, uses the ambient implementation.</param>
-        /// <returns>A new <see cref="HighPerformanceFifoTaskScheduler"/> instance.</returns>
-        internal static HighPerformanceFifoTaskScheduler Start(string schedulerName, int schedulerMasterFrequencyMilliseconds, int bufferThreadCount, int maxThreads, IAmbientStatistics? statistics = null)
+        /// <returns>A new <see cref="FifoTaskScheduler"/> instance.</returns>
+        internal static FifoTaskScheduler Start(string schedulerName, int schedulerMasterFrequencyMilliseconds, int bufferThreadCount, int maxThreads, IAmbientStatistics? statistics = null)
         {
-            HighPerformanceFifoTaskScheduler ret = new(schedulerName, ThreadPriority.Normal, statistics, schedulerMasterFrequencyMilliseconds, bufferThreadCount, maxThreads, true);
+            FifoTaskScheduler ret = new(schedulerName, ThreadPriority.Normal, statistics, schedulerMasterFrequencyMilliseconds, bufferThreadCount, maxThreads, true);
             ret.Start();
             return ret;
         }
-        private HighPerformanceFifoTaskScheduler(string schedulerName, ThreadPriority priority = ThreadPriority.Normal, IAmbientStatistics? statistics = null, int schedulerMasterFrequencyMilliseconds = 1000, int bufferThreadCount = 0, int maxThreads = 0, bool testMode = false)
+        private FifoTaskScheduler(string schedulerName, ThreadPriority priority = ThreadPriority.Normal, IAmbientStatistics? statistics = null, int schedulerMasterFrequencyMilliseconds = 1000, int bufferThreadCount = 0, int maxThreads = 0, bool testMode = false)
         {
             // save the scheduler name and priority
             _statistics = statistics ?? _AmbientStatistics.Local;
@@ -579,7 +595,7 @@ namespace AmbientServices
             for (int i = 0; i < Math.Min(1, _bufferWorkerThreads); ++i)
             {
 #pragma warning disable CA2000 // Dispose objects before losing scope  This is put into a collection and disposed later
-                HighPerformanceFifoWorker worker = CreateWorker();
+                FifoWorker worker = CreateWorker();
 #pragma warning restore CA2000 // Dispose objects before losing scope
                 Debug.Assert(!worker.IsBusy);
                 _readyWorkerList.Push(worker);
@@ -592,11 +608,11 @@ namespace AmbientServices
 
 #if DEBUG
         private readonly string fStackAtConstruction = new StackTrace().ToString();
-        ~HighPerformanceFifoTaskScheduler()
+        ~FifoTaskScheduler()
         {
             if (_executeDisposalCheck)
             {
-                Debug.Fail($"Failed to dispose/close {nameof(HighPerformanceFifoTaskScheduler)} {_schedulerName}: Stack at construction was:\n{fStackAtConstruction}");
+                Debug.Fail($"Failed to dispose/close {nameof(FifoTaskScheduler)} {_schedulerName}: Stack at construction was:\n{fStackAtConstruction}");
             }
 
             Dispose();
@@ -648,11 +664,11 @@ namespace AmbientServices
             wakeWorkerThreadEvent.Reset();
         }
 
-        internal HighPerformanceFifoWorker CreateWorker()
+        internal FifoWorker CreateWorker()
         {
             int id = Interlocked.Increment(ref _workerId);
             // initialize the worker (starts their threads)
-            HighPerformanceFifoWorker worker = HighPerformanceFifoWorker.Start(this, ThreadName(id), _schedulerThreadPriority);
+            FifoWorker worker = FifoWorker.Start(this, ThreadName(id), _schedulerThreadPriority);
             Interlocked.Increment(ref _workers);
             // update the high water mark if needed
             InterlockedUtilities.TryOptomisticMax(ref _workersHighWaterMark, _workers);
@@ -722,7 +738,7 @@ namespace AmbientServices
                                 }
                             }
                             Interlocked.Exchange(ref _reset, 0);
-                            HighPerformanceFifoTaskScheduler.Logger.Log($"{_schedulerName} workers:{_workers}", "Reset", AmbientLogLevel.Debug);
+                            FifoTaskScheduler.Logger.Log($"{_schedulerName} workers:{_workers}", "Reset", AmbientLogLevel.Debug);
                             // record that we retired threads just now
                             lastRetirementTicks = Environment.TickCount;
                             // record that we just finished a reset
@@ -754,11 +770,11 @@ namespace AmbientServices
                                 for (int i = 0; i < _bufferWorkerThreads - readyWorkers; ++i)
                                 {
                                     // create a new worker
-                                    HighPerformanceFifoWorker worker = CreateWorker();
+                                    FifoWorker worker = CreateWorker();
                                     Debug.Assert(!worker.IsBusy);
                                     _readyWorkerList.Push(worker);
                                 }
-                                HighPerformanceFifoTaskScheduler.Logger.Log($"{_schedulerName} workers:{_workers}", "Scale", AmbientLogLevel.Debug);
+                                FifoTaskScheduler.Logger.Log($"{_schedulerName} workers:{_workers}", "Scale", AmbientLogLevel.Debug);
                                 // record the expansion time so we don't retire anything for at least a minute
                                 lastCreationTicks = Environment.TickCount;
                                 // record that we just finished a scale up
@@ -781,7 +797,7 @@ namespace AmbientServices
                                 {
                                     // retire one worker
                                     RetireOneWorker();
-                                    HighPerformanceFifoTaskScheduler.Logger.Log($"{_schedulerName} workers:{_workers}", "Scale", AmbientLogLevel.Debug);
+                                    FifoTaskScheduler.Logger.Log($"{_schedulerName} workers:{_workers}", "Scale", AmbientLogLevel.Debug);
                                     // record that we retired threads just now
                                     lastRetirementTicks = Environment.TickCount;
                                 }
@@ -810,7 +826,7 @@ namespace AmbientServices
 
         private bool RetireOneWorker()
         {
-            HighPerformanceFifoWorker? workerToStop = _readyWorkerList.Pop();
+            FifoWorker? workerToStop = _readyWorkerList.Pop();
             // none left?
             if (workerToStop is null)
             {
@@ -823,7 +839,7 @@ namespace AmbientServices
             return true;
         }
 
-        internal void OnWorkerReady(HighPerformanceFifoWorker worker)
+        internal void OnWorkerReady(FifoWorker worker)
         {
             // add the worker back to the ready worker list
             Debug.Assert(!worker.IsBusy);
@@ -861,6 +877,8 @@ namespace AmbientServices
                 // record this miss
                 Interlocked.Exchange(ref _lastInlineExecutionTicks, Environment.TickCount);
                 SchedulerInlineExecutions?.Increment();
+                // notify any subscribers of the miss
+                TaskInlined?.Invoke(this, new TaskInlinedEventArgs());
                 // wake the master thread so it will add more threads ASAP
                 _wakeSchedulerMasterThread.Set();
                 Logger.Log($"'{_schedulerName}': no available workers--invoking inline.", "Busy", AmbientLogLevel.Warning);
@@ -906,7 +924,7 @@ namespace AmbientServices
             TaskCompletionSource<bool> tcs = new();
             SchedulerInvocations?.Increment();
             // try to get a ready thread
-            HighPerformanceFifoWorker? worker = _readyWorkerList.Pop();
+            FifoWorker? worker = _readyWorkerList.Pop();
             // no ready workers?
             if (worker is null || Stopping)
             {
@@ -937,7 +955,7 @@ namespace AmbientServices
             TaskCompletionSource<T> tcs = new();
             SchedulerInvocations?.Increment();
             // try to get a ready thread
-            HighPerformanceFifoWorker? worker = _readyWorkerList.Pop();
+            FifoWorker? worker = _readyWorkerList.Pop();
             // no ready workers?
             if (worker is null || Stopping)
             {
@@ -978,7 +996,7 @@ namespace AmbientServices
             TaskCompletionSource<bool> tcs = new();
             SchedulerInvocations?.Increment();
             // try to get a ready thread
-            HighPerformanceFifoWorker? worker = _readyWorkerList.Pop();
+            FifoWorker? worker = _readyWorkerList.Pop();
             // no ready workers?
             if (worker is null || Stopping)
             {
@@ -1017,11 +1035,11 @@ namespace AmbientServices
         public Task<T> Run<T>(Func<T> func)
         {
             if (func == null) throw new ArgumentNullException(nameof(func));
-            if (Stopping) throw new ObjectDisposedException(nameof(HighPerformanceFifoTaskScheduler));
+            if (Stopping) throw new ObjectDisposedException(nameof(FifoTaskScheduler));
             TaskCompletionSource<T> tcs = new();
             SchedulerInvocations?.Increment();
             // try to get a ready thread
-            HighPerformanceFifoWorker? worker = _readyWorkerList.Pop();
+            FifoWorker? worker = _readyWorkerList.Pop();
             // no ready workers?
             if (worker is null)
             {
@@ -1065,11 +1083,11 @@ namespace AmbientServices
         public Task Run(Action action)
         {
             if (action == null) throw new ArgumentNullException(nameof(action));
-            if (Stopping) throw new ObjectDisposedException(nameof(HighPerformanceFifoTaskScheduler));
+            if (Stopping) throw new ObjectDisposedException(nameof(FifoTaskScheduler));
             TaskCompletionSource<bool> tcs = new();
             SchedulerInvocations?.Increment();
             // try to get a ready thread
-            HighPerformanceFifoWorker? worker = _readyWorkerList.Pop();
+            FifoWorker? worker = _readyWorkerList.Pop();
             // no ready workers?
             if (worker is null)
             {
@@ -1113,10 +1131,10 @@ namespace AmbientServices
         public void FireAndForget(Action action)
         {
             if (action == null) throw new ArgumentNullException(nameof(action));
-            if (Stopping) throw new ObjectDisposedException(nameof(HighPerformanceFifoTaskScheduler));
+            if (Stopping) throw new ObjectDisposedException(nameof(FifoTaskScheduler));
             SchedulerInvocations?.Increment();
             // try to get a ready thread
-            HighPerformanceFifoWorker? worker = _readyWorkerList.Pop();
+            FifoWorker? worker = _readyWorkerList.Pop();
             // no ready workers?
             if (worker is null)
             {
@@ -1229,7 +1247,7 @@ namespace AmbientServices
         protected override void QueueTask(Task task)
         {
             if (task == null) throw new ArgumentNullException(nameof(task));
-            if (_stopMasterThread != 0) throw new ObjectDisposedException(nameof(HighPerformanceFifoTaskScheduler));
+            if (_stopMasterThread != 0) throw new ObjectDisposedException(nameof(FifoTaskScheduler));
             Task t = QueueWork(() =>
             {
                 TryExecuteTask(task);

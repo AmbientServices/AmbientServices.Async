@@ -20,7 +20,7 @@ namespace AmbientServices.Test
         {
             System.Threading.Tasks.ValueTask t = TraceBuffer.Flush();
             t.GetAwaiter().GetResult();
-            HighPerformanceFifoTaskScheduler.Stop();
+            FifoTaskScheduler.Stop();
         }
     }
 }

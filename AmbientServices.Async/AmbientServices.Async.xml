@@ -363,73 +363,73 @@
             Gets the proportion of time the CPU was in use (average across all CPUs) in the previous measurement window, which will be at least the minimum window specified in the constructor.
             </summary>
         </member>
-        <member name="T:AmbientServices.HighPerformanceFifoTaskFactory">
+        <member name="T:AmbientServices.FifoTaskFactory">
             <summary>
-            A <see cref="T:System.Threading.Tasks.TaskFactory"/> that uses the <see cref="T:AmbientServices.HighPerformanceFifoTaskScheduler"/> to schedule tasks.
+            A <see cref="T:System.Threading.Tasks.TaskFactory"/> that uses the <see cref="T:AmbientServices.FifoTaskScheduler"/> to schedule tasks.
             </summary>
         </member>
-        <member name="P:AmbientServices.HighPerformanceFifoTaskFactory.Default">
+        <member name="P:AmbientServices.FifoTaskFactory.Default">
             <summary>
-            Gets the default <see cref="T:AmbientServices.HighPerformanceFifoTaskFactory"/>.
+            Gets the default <see cref="T:AmbientServices.FifoTaskFactory"/>.
             </summary>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskFactory.#ctor">
+        <member name="M:AmbientServices.FifoTaskFactory.#ctor">
             <summary>
-            Constructs a <see cref="T:System.Threading.Tasks.TaskFactory"/> that uses the <see cref="P:AmbientServices.HighPerformanceFifoTaskScheduler.Default"/> task scheduler.
+            Constructs a <see cref="T:System.Threading.Tasks.TaskFactory"/> that uses the <see cref="P:AmbientServices.FifoTaskScheduler.Default"/> task scheduler.
             </summary>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskFactory.#ctor(System.Threading.CancellationToken)">
+        <member name="M:AmbientServices.FifoTaskFactory.#ctor(System.Threading.CancellationToken)">
             <summary>
-            Initializes a <see cref="T:AmbientServices.HighPerformanceFifoTaskFactory"/> instance with the specified configuration.
+            Initializes a <see cref="T:AmbientServices.FifoTaskFactory"/> instance with the specified configuration.
             </summary>
             <param name="cancellationToken">The default <see cref="T:System.Threading.CancellationToken"/> to use for tasks that are started without an explicit <see cref="T:System.Threading.CancellationToken"/>.</param>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskFactory.#ctor(AmbientServices.HighPerformanceFifoTaskScheduler)">
+        <member name="M:AmbientServices.FifoTaskFactory.#ctor(AmbientServices.FifoTaskScheduler)">
             <summary>
-            Initializes a <see cref="T:AmbientServices.HighPerformanceFifoTaskFactory"/> instance with the specified configuration.
+            Initializes a <see cref="T:AmbientServices.FifoTaskFactory"/> instance with the specified configuration.
             </summary>
-            <param name="scheduler">The default <see cref="T:AmbientServices.HighPerformanceFifoTaskScheduler"/> to use.</param>
+            <param name="scheduler">The default <see cref="T:AmbientServices.FifoTaskScheduler"/> to use.</param>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskFactory.#ctor(System.Threading.Tasks.TaskCreationOptions,System.Threading.Tasks.TaskContinuationOptions)">
+        <member name="M:AmbientServices.FifoTaskFactory.#ctor(System.Threading.Tasks.TaskCreationOptions,System.Threading.Tasks.TaskContinuationOptions)">
             <summary>
-            Initializes a <see cref="T:AmbientServices.HighPerformanceFifoTaskFactory"/> instance with the specified configuration.
+            Initializes a <see cref="T:AmbientServices.FifoTaskFactory"/> instance with the specified configuration.
             </summary>
             <param name="creationOptions">A set of <see cref="T:System.Threading.Tasks.TaskCreationOptions"/> controlling task creation.</param>
             <param name="continuationOptions">A set of <see cref="T:System.Threading.Tasks.TaskContinuationOptions"/> controlling task continuations.</param>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskFactory.#ctor(System.Threading.CancellationToken,System.Threading.Tasks.TaskCreationOptions,System.Threading.Tasks.TaskContinuationOptions,AmbientServices.HighPerformanceFifoTaskScheduler)">
+        <member name="M:AmbientServices.FifoTaskFactory.#ctor(System.Threading.CancellationToken,System.Threading.Tasks.TaskCreationOptions,System.Threading.Tasks.TaskContinuationOptions,AmbientServices.FifoTaskScheduler)">
             <summary>
-            Initializes a <see cref="T:AmbientServices.HighPerformanceFifoTaskFactory"/> instance with the specified configuration.
+            Initializes a <see cref="T:AmbientServices.FifoTaskFactory"/> instance with the specified configuration.
             </summary>
             <param name="cancellationToken">The default <see cref="T:System.Threading.CancellationToken"/> to use for tasks that are started without an explicit <see cref="T:System.Threading.CancellationToken"/>.</param>
             <param name="creationOptions">A set of <see cref="T:System.Threading.Tasks.TaskCreationOptions"/> controlling task creation.</param>
             <param name="continuationOptions">A set of <see cref="T:System.Threading.Tasks.TaskContinuationOptions"/> controlling task continuations.</param>
-            <param name="scheduler">The default <see cref="T:AmbientServices.HighPerformanceFifoTaskScheduler"/> to use.</param>
+            <param name="scheduler">The default <see cref="T:AmbientServices.FifoTaskScheduler"/> to use.</param>
         </member>
-        <member name="T:AmbientServices.HighPerformanceFifoSynchronizationContext">
+        <member name="T:AmbientServices.FifoSynchronizationContext">
             <summary>
-            A <see cref="T:System.Threading.SynchronizationContext"/> that schedules work items on the <see cref="T:AmbientServices.HighPerformanceFifoTaskScheduler"/>.
+            A <see cref="T:System.Threading.SynchronizationContext"/> that schedules work items on the <see cref="T:AmbientServices.FifoTaskScheduler"/>.
             </summary>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoSynchronizationContext.Send(System.Threading.SendOrPostCallback,System.Object)">
+        <member name="M:AmbientServices.FifoSynchronizationContext.Send(System.Threading.SendOrPostCallback,System.Object)">
             <summary>
             Synchronously posts a message.
             </summary>
             <param name="d">The message to post.</param>
             <param name="state">The state to give to the post callback.</param>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoSynchronizationContext.Post(System.Threading.SendOrPostCallback,System.Object)">
+        <member name="M:AmbientServices.FifoSynchronizationContext.Post(System.Threading.SendOrPostCallback,System.Object)">
             <summary>
             Posts a message.
             </summary>
             <param name="d">The message to post.</param>
             <param name="state">The state to give to the post callback.</param>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoSynchronizationContext.CreateCopy">
+        <member name="M:AmbientServices.FifoSynchronizationContext.CreateCopy">
             <summary>
-            Creates a "copy" of this <see cref="T:AmbientServices.HighPerformanceFifoSynchronizationContext"/>, which in this case just returns the singleton instance because there is nothing held in memory anyway.
+            Creates a "copy" of this <see cref="T:AmbientServices.FifoSynchronizationContext"/>, which in this case just returns the singleton instance because there is nothing held in memory anyway.
             </summary>
-            <returns>The same singleton <see cref="T:AmbientServices.HighPerformanceFifoSynchronizationContext"/> on which we were called.</returns>
+            <returns>The same singleton <see cref="T:AmbientServices.FifoSynchronizationContext"/> on which we were called.</returns>
         </member>
         <member name="T:AmbientServices.UnobservedExceptionEventArgs">
             <summary>
@@ -447,172 +447,172 @@
             </summary>
             <param name="ex">The <see cref="P:AmbientServices.UnobservedExceptionEventArgs.Exception"/> that was not handled.</param>
         </member>
-        <member name="T:AmbientServices.HighPerformanceFifoWorker">
+        <member name="T:AmbientServices.FifoWorker">
             <summary>
             A worker which contains a thread and various other objects needed to use the thread.  Disposes of itself when the thread is stopped.
             </summary>
         </member>
-        <member name="P:AmbientServices.HighPerformanceFifoWorker.IsBusy">
+        <member name="P:AmbientServices.FifoWorker.IsBusy">
             <summary>
             Gets whether or not this worker is currently executing a job.
             </summary>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoWorker.Invoke(System.Action)">
+        <member name="M:AmbientServices.FifoWorker.Invoke(System.Action)">
             <summary>
             Schedules the specified delegate on this worker's thread and returns <b>true</b>, or returns <b>false</b> if the worker is already busy servicing another job.
             </summary>
             <param name="action">The action to attempt to carry out on this worker.</param>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoWorker.Stop">
+        <member name="M:AmbientServices.FifoWorker.Stop">
             <summary>
             Tells the thread to stop and exit.
             </summary>
         </member>
-        <member name="T:AmbientServices.HighPerformanceFifoTaskScheduler">
+        <member name="T:AmbientServices.FifoTaskScheduler">
             <summary>
             A <see cref="T:System.Threading.Tasks.TaskScheduler"/> that is high performance and runs tasks in first-in-first-out order.
             </summary>
         </member>
-        <member name="P:AmbientServices.HighPerformanceFifoTaskScheduler.Default">
+        <member name="P:AmbientServices.FifoTaskScheduler.Default">
             <summary>
-            Gets the default <see cref="T:AmbientServices.HighPerformanceFifoTaskScheduler"/>, one with normal priorities.
+            Gets the default <see cref="T:AmbientServices.FifoTaskScheduler"/>, one with normal priorities.
             </summary>
         </member>
-        <member name="P:AmbientServices.HighPerformanceFifoTaskScheduler.SynchronizationContext">
+        <member name="P:AmbientServices.FifoTaskScheduler.SynchronizationContext">
             <summary>
-            Gets the <see cref="P:AmbientServices.HighPerformanceFifoTaskScheduler.SynchronizationContext"/> for this task scheduler.
+            Gets the <see cref="P:AmbientServices.FifoTaskScheduler.SynchronizationContext"/> for this task scheduler.
             </summary>
         </member>
-        <member name="E:AmbientServices.HighPerformanceFifoTaskScheduler.UnobservedException">
+        <member name="E:AmbientServices.FifoTaskScheduler.UnobservedException">
             <summary>
             An event that notifies scubscribers whenever an exception is thrown and not handled.
             </summary>
         </member>
-        <member name="P:AmbientServices.HighPerformanceFifoTaskScheduler.LastScaleUp">
+        <member name="P:AmbientServices.FifoTaskScheduler.LastScaleUp">
             <summary>
             Gets the <see cref="T:System.DateTime"/> of the completion of the last scale up.
             </summary>
         </member>
-        <member name="P:AmbientServices.HighPerformanceFifoTaskScheduler.LastScaleDown">
+        <member name="P:AmbientServices.FifoTaskScheduler.LastScaleDown">
             <summary>
             Gets the <see cref="T:System.DateTime"/> of the completion of the last scale down.
             </summary>
         </member>
-        <member name="P:AmbientServices.HighPerformanceFifoTaskScheduler.LastResetTime">
+        <member name="P:AmbientServices.FifoTaskScheduler.LastResetTime">
             <summary>
             Gets the <see cref="T:System.DateTime"/> of the completion of the last reset.
             </summary>
         </member>
-        <member name="P:AmbientServices.HighPerformanceFifoTaskScheduler.Workers">
+        <member name="P:AmbientServices.FifoTaskScheduler.Workers">
             <summary>
             Gets the current number of workers.
             </summary>
         </member>
-        <member name="P:AmbientServices.HighPerformanceFifoTaskScheduler.BusyWorkers">
+        <member name="P:AmbientServices.FifoTaskScheduler.BusyWorkers">
             <summary>
             Gets the number of currently busy workers.
             </summary>
         </member>
-        <member name="P:AmbientServices.HighPerformanceFifoTaskScheduler.ReadyWorkers">
+        <member name="P:AmbientServices.FifoTaskScheduler.ReadyWorkers">
             <summary>
             Gets the number of currently ready workers.
             </summary>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.Stop">
+        <member name="M:AmbientServices.FifoTaskScheduler.Stop">
             <summary>
             Stops the all the task schedulers by disposing of all of them.
             </summary>
         </member>
-        <member name="P:AmbientServices.HighPerformanceFifoTaskScheduler.Name">
+        <member name="P:AmbientServices.FifoTaskScheduler.Name">
             <summary>
             Gets the name of the scheduler.
             </summary>
         </member>
-        <member name="P:AmbientServices.HighPerformanceFifoTaskScheduler.Ticks">
+        <member name="P:AmbientServices.FifoTaskScheduler.Ticks">
             <summary>
             Gets the ticks used internally for performance tracking.
             </summary>
         </member>
-        <member name="P:AmbientServices.HighPerformanceFifoTaskScheduler.TicksPerSecond">
+        <member name="P:AmbientServices.FifoTaskScheduler.TicksPerSecond">
             <summary>
             Gets the number of ticks per second used internally for performance tracking.
             </summary>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.Start(System.String,System.Threading.ThreadPriority,System.Boolean,AmbientServices.IAmbientStatistics)">
+        <member name="M:AmbientServices.FifoTaskScheduler.Start(System.String,System.Threading.ThreadPriority,System.Boolean,AmbientServices.IAmbientStatistics)">
             <summary>
-            Starts a new <see cref="T:AmbientServices.HighPerformanceFifoTaskScheduler"/> with the specified configuration.
+            Starts a new <see cref="T:AmbientServices.FifoTaskScheduler"/> with the specified configuration.
             </summary>
             <param name="schedulerName">The name of the task scheduler (used in logging and exceptions).</param>
             <param name="priority">The <see cref="T:System.Threading.ThreadPriority"/> for the threads that will be used ot execute the tasks.</param>
             <param name="executeDisposalCheck">Whether or not to verify that the instance is properly disposed.</param>
             <param name="statistics">An optional <see cref="T:AmbientServices.IAmbientStatistics"/> to use for reporting statistics, if not specified or null, uses the ambient implementation.</param>
-            <returns>A new <see cref="T:AmbientServices.HighPerformanceFifoTaskScheduler"/> instance.</returns>
+            <returns>A new <see cref="T:AmbientServices.FifoTaskScheduler"/> instance.</returns>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.Start(System.String,System.Threading.ThreadPriority)">
+        <member name="M:AmbientServices.FifoTaskScheduler.Start(System.String,System.Threading.ThreadPriority)">
             <summary>
-            Starts a new <see cref="T:AmbientServices.HighPerformanceFifoTaskScheduler"/> with the specified configuration.
+            Starts a new <see cref="T:AmbientServices.FifoTaskScheduler"/> with the specified configuration.
             </summary>
             <param name="schedulerName">The name of the task scheduler (used in logging and exceptions).</param>
             <param name="priority">The <see cref="T:System.Threading.ThreadPriority"/> for the threads that will be used ot execute the tasks.</param>
-            <returns>A new <see cref="T:AmbientServices.HighPerformanceFifoTaskScheduler"/> instance.</returns>
+            <returns>A new <see cref="T:AmbientServices.FifoTaskScheduler"/> instance.</returns>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.Start(System.String,System.Int32,System.Int32,System.Int32,AmbientServices.IAmbientStatistics)">
+        <member name="M:AmbientServices.FifoTaskScheduler.Start(System.String,System.Int32,System.Int32,System.Int32,AmbientServices.IAmbientStatistics)">
             <summary>
-            Starts a new <see cref="T:AmbientServices.HighPerformanceFifoTaskScheduler"/> in test mode with the specified configuration.
+            Starts a new <see cref="T:AmbientServices.FifoTaskScheduler"/> in test mode with the specified configuration.
             </summary>
             <param name="schedulerName">The name of the task scheduler (used in logging and exceptions).</param>
             <param name="schedulerMasterFrequencyMilliseconds">How many milliseconds to wait each time around the master scheduler loop, ie. the frequency with which to check to see if we should alter the number of worker threads.</param>
             <param name="bufferThreadCount">The number of threads to start with and to keep as a buffer after resetting.</param>
             <param name="maxThreads">The maximum number of threads to use, or zero to let the system decide.</param>
             <param name="statistics">An optional <see cref="T:AmbientServices.IAmbientStatistics"/> to use for reporting statistics, if not specified or null, uses the ambient implementation.</param>
-            <returns>A new <see cref="T:AmbientServices.HighPerformanceFifoTaskScheduler"/> instance.</returns>
+            <returns>A new <see cref="T:AmbientServices.FifoTaskScheduler"/> instance.</returns>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.Dispose">
+        <member name="M:AmbientServices.FifoTaskScheduler.Dispose">
             <summary>
             Disposes of the instance.
             </summary>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.Reset">
+        <member name="M:AmbientServices.FifoTaskScheduler.Reset">
             <summary>
             Tells the scheduler master thread to reset because we've just finished a massively parallel operation has finished and excess threads are no longer needed.
             </summary>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.ExecuteActionWithTaskCompletionSource(System.Action,System.Threading.Tasks.TaskCompletionSource{System.Boolean})">
+        <member name="M:AmbientServices.FifoTaskScheduler.ExecuteActionWithTaskCompletionSource(System.Action,System.Threading.Tasks.TaskCompletionSource{System.Boolean})">
             <summary>
             Executes an action using a <see cref="T:System.Threading.Tasks.TaskCompletionSource`1"/>.  Exceptions will not be thrown directly, but will instead be reflected in <paramref name="tcs"/>.
             </summary>
             <param name="action">The action to run.</param>
             <param name="tcs">The <see cref="T:System.Threading.Tasks.TaskCompletionSource`1"/> to record the results (or exception) in.</param>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.Send(System.Threading.SendOrPostCallback,System.Object)">
+        <member name="M:AmbientServices.FifoTaskScheduler.Send(System.Threading.SendOrPostCallback,System.Object)">
             <summary>
             Synchronously posts a message.
             </summary>
             <param name="d">The message to post.</param>
             <param name="state">The state to give to the post callback.</param>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.Post(System.Threading.SendOrPostCallback,System.Object)">
+        <member name="M:AmbientServices.FifoTaskScheduler.Post(System.Threading.SendOrPostCallback,System.Object)">
             <summary>
             Posts a message.
             </summary>
             <param name="d">The message to post.</param>
             <param name="state">The state to give to the post callback.</param>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.TransferWork``1(System.Func{System.Threading.Tasks.ValueTask{``0}})">
+        <member name="M:AmbientServices.FifoTaskScheduler.TransferWork``1(System.Func{System.Threading.Tasks.ValueTask{``0}})">
             <summary>
             Transfers asynchronous work to this scheduler, running continuations within the scheduler so that subsequent work also runs on this scheduler.
             </summary>
             <typeparam name="T">The type returned by the function.</typeparam>
             <param name="func">The asynchronous function that does the work.</param>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.TransferWork(System.Func{System.Threading.Tasks.ValueTask})">
+        <member name="M:AmbientServices.FifoTaskScheduler.TransferWork(System.Func{System.Threading.Tasks.ValueTask})">
             <summary>
             Transfers asynchronous work to this scheduler, running continuations within the scheduler so that subsequent work also runs on this scheduler.
             Exceptions are thrown from the function out to the caller.
             </summary>
             <param name="func">The asynchronous function that does the work.</param>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.QueueWork(System.Action)">
+        <member name="M:AmbientServices.FifoTaskScheduler.QueueWork(System.Action)">
             <summary>
             Queues synchronous work to this scheduler, running continuations within the scheduler if workers are available, and running it inline (synchronously) if not.
             </summary>
@@ -620,28 +620,28 @@
             <returns>A <see cref="T:System.Threading.Tasks.Task"/> representing the work, no matter whether it was scheduled on a worker thread or run inline.</returns>
             <remarks>Exceptions thrown from <paramref name="action"/> are placed into the returned <see cref="T:System.Threading.Tasks.Task"/>.</remarks>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.QueueWork``1(System.Func{System.Threading.Tasks.ValueTask{``0}})">
+        <member name="M:AmbientServices.FifoTaskScheduler.QueueWork``1(System.Func{System.Threading.Tasks.ValueTask{``0}})">
             <summary>
             Queues asynchronous work to this scheduler, running everything within the scheduler if workers are available, and running inline, with continuations in the scheduler if not.
             </summary>
             <typeparam name="T">The type returned by the function.</typeparam>
             <param name="func">The asynchronous function that does the work.</param>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.QueueWork(System.Func{System.Threading.Tasks.ValueTask})">
+        <member name="M:AmbientServices.FifoTaskScheduler.QueueWork(System.Func{System.Threading.Tasks.ValueTask})">
             <summary>
             Queues asynchronous work to this scheduler, running everything within the scheduler if workers are available, and running inline, with continuations in the scheduler if not.
             </summary>
             <param name="func">The asynchronous function that does the work.</param>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.Run``1(System.Func{``0})">
+        <member name="M:AmbientServices.FifoTaskScheduler.Run``1(System.Func{``0})">
             <summary>
             Runs a long-running function, running it entirely on a scheduler thread.
             </summary>
-            <param name="func">The func to run on a scheduler thread.  The function may be async but should not be "async void" (use <see cref="M:AmbientServices.HighPerformanceFifoTaskScheduler.Run(System.Action)"/> for those).  If async, this function returns a "wrapped" task.</param>
-            <returns>A <see cref="T:System.Threading.Tasks.Task"/> which may be used to wait for the action to complete.  Presumably you want the result, or you would have used <see cref="M:AmbientServices.HighPerformanceFifoTaskScheduler.FireAndForget(System.Action)"/>.</returns>
+            <param name="func">The func to run on a scheduler thread.  The function may be async but should not be "async void" (use <see cref="M:AmbientServices.FifoTaskScheduler.Run(System.Action)"/> for those).  If async, this function returns a "wrapped" task.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task"/> which may be used to wait for the action to complete.  Presumably you want the result, or you would have used <see cref="M:AmbientServices.FifoTaskScheduler.FireAndForget(System.Action)"/>.</returns>
             <remarks>Exceptions thrown from the function will be available to be observed through the returned <see cref="T:System.Threading.Tasks.Task"/>.</remarks>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.Run(System.Action)">
+        <member name="M:AmbientServices.FifoTaskScheduler.Run(System.Action)">
             <summary>
             Runs a long-running action, running it entirely on a scheduler thread, but gets a <see cref="T:System.Threading.Tasks.Task"/> we can use wait for completion when it does finally finish or get canceled.
             </summary>
@@ -649,21 +649,21 @@
             <returns>A <see cref="T:System.Threading.Tasks.Task"/> which may be used to wait for the function to complete after it is cancelled (or exits on its own).</returns>
             <remarks>Exceptions thrown from the function will be available to be observed through the returned <see cref="T:System.Threading.Tasks.Task"/>.</remarks>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.FireAndForget(System.Action)">
+        <member name="M:AmbientServices.FifoTaskScheduler.FireAndForget(System.Action)">
             <summary>
             Runs a fire-and-forget action, running it entirely on a scheduler thread.
             </summary>
             <param name="action">The action to run asynchronously.  May be an "async void" action.</param>
             <remarks>Note that exceptions throw from <paramref name="action"/> will be unobserved.</remarks>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.ExecuteAction(System.Action)">
+        <member name="M:AmbientServices.FifoTaskScheduler.ExecuteAction(System.Action)">
             <summary>
             Runs the specified action in the context of the high performance FIFO task scheduler.
             Everything up to the first await will run inline, but continuations will run in the context of the high performance FIFO task scheduler.
             </summary>
             <param name="action">The <see cref="T:System.Action"/> to run.</param>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.ExecuteTask``1(System.Func{System.Threading.Tasks.ValueTask{``0}})">
+        <member name="M:AmbientServices.FifoTaskScheduler.ExecuteTask``1(System.Func{System.Threading.Tasks.ValueTask{``0}})">
             <summary>
             Executes an asynchronous function with the high performance FIFO task scheduler as the default synchronization context.
             This function must not be awaited because awaits outside of this context may cause continuations to run outside of this task scheduler.
@@ -671,27 +671,27 @@
             <typeparam name="T">The type that will be returned from the async function.</typeparam>
             <param name="func">The async function to invoke within the context of the high performance FIFO task scheduler.</param>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.ExecuteTask(System.Func{System.Threading.Tasks.ValueTask})">
+        <member name="M:AmbientServices.FifoTaskScheduler.ExecuteTask(System.Func{System.Threading.Tasks.ValueTask})">
             <summary>
             Executes an asynchronous function with the high performance FIFO task scheduler as the default synchronization context.
             This function must not be awaited because awaits outside of this context may cause continuations to run outside of this task scheduler.
             </summary>
             <param name="func">The async function to invoke within the context of the high performance FIFO task scheduler.</param>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.GetScheduledTasks">
+        <member name="M:AmbientServices.FifoTaskScheduler.GetScheduledTasks">
             <summary>
             Gets the list of scheduled tasks.  In this case, this is always empty, as all tasks are either executed immediately on another thread or executed inline.
             </summary>
             <returns>An empty enumeration.</returns>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.QueueTask(System.Threading.Tasks.Task)">
+        <member name="M:AmbientServices.FifoTaskScheduler.QueueTask(System.Threading.Tasks.Task)">
             <summary>
             Queues the specified task to the high performance FIFO scheduler, or runs it immediately if there are no workers available.
             Any exceptions will go to the unhandled exception handler.
             </summary>
             <param name="task">The <see cref="T:System.Threading.Tasks.Task"/> which is to be executed.</param>
         </member>
-        <member name="M:AmbientServices.HighPerformanceFifoTaskScheduler.TryExecuteTaskInline(System.Threading.Tasks.Task,System.Boolean)">
+        <member name="M:AmbientServices.FifoTaskScheduler.TryExecuteTaskInline(System.Threading.Tasks.Task,System.Boolean)">
             <summary>
             Attempts to execute the specified task inline.
             </summary>
@@ -699,7 +699,7 @@
             <param name="taskWasPreviouslyQueued">Whether or not the task was previously queued.</param>
             <returns>Whether or not the task ran inline.</returns>
         </member>
-        <member name="P:AmbientServices.HighPerformanceFifoTaskScheduler.MaximumConcurrencyLevel">
+        <member name="P:AmbientServices.FifoTaskScheduler.MaximumConcurrencyLevel">
             <summary>
             Gets the maximum number of tasks that can be concurrently running under this scheduler.
             </summary>
