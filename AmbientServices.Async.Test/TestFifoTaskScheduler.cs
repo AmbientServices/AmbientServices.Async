@@ -45,7 +45,7 @@ namespace AmbientServices.Test
         public async Task RunWithFunc()
         {
             //using IDisposable d = LoggerBackend.ScopedLocalOverride(new AmbientTraceLogger());
-            using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(RunWithFunc), ThreadPriority.Highest);
+            using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(RunWithFunc), priority: ThreadPriority.Highest);
             List<Task<Task>> tasks = new();
             for (int i = 0; i < 1000; ++i)
             {
@@ -63,7 +63,7 @@ namespace AmbientServices.Test
         public async Task RunWithAction()
         {
             //using IDisposable d = LoggerBackend.ScopedLocalOverride(new AmbientTraceLogger());
-            using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(RunWithAction), ThreadPriority.Highest);
+            using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(RunWithAction), priority: ThreadPriority.Highest);
             ConcurrentBag<Task> tasks = new();
             for (int i = 0; i < 1000; ++i)
             {
@@ -81,7 +81,7 @@ namespace AmbientServices.Test
         public async Task RunFireAndForget()
         {
             //using IDisposable d = LoggerBackend.ScopedLocalOverride(new AmbientTraceLogger());
-            using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(RunFireAndForget), ThreadPriority.Highest);
+            using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(RunFireAndForget), priority: ThreadPriority.Highest);
             ConcurrentBag<Task> tasks = new();
             for (int i = 0; i < 1000; ++i)
             {
@@ -99,7 +99,7 @@ namespace AmbientServices.Test
         public async Task NoStatsStartNew()
         {
             using IDisposable d = StatisticsBackend.ScopedLocalOverride(null);
-            using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(NoStatsStartNew), ThreadPriority.Highest);
+            using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(NoStatsStartNew), priority: ThreadPriority.Highest);
             FifoTaskFactory testFactory = new(scheduler);
             List<Task<Task>> tasks = new();
             tasks.Add(scheduler.Run(() => new FakeWork(-1, true).DoMixedWorkAsync(CancellationToken.None).AsTask()));       // note that we need to do mixed work here because otherwise everything runs on one or two threads
@@ -120,7 +120,7 @@ namespace AmbientServices.Test
         public async Task NoStatsRunWithAction()
         {
             using IDisposable d = StatisticsBackend.ScopedLocalOverride(null);
-            using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(NoStatsRunWithAction), ThreadPriority.Highest);
+            using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(NoStatsRunWithAction), priority: ThreadPriority.Highest);
             FifoTaskFactory testFactory = new(scheduler);
             Task? task = null;
             await scheduler.Run(() => { task = new FakeWork(1, true).DoDelayOnlyWorkAsync(CancellationToken.None).AsTask(); });
@@ -133,7 +133,7 @@ namespace AmbientServices.Test
         public async Task NoStatsFireAndForget()
         {
             using IDisposable d = StatisticsBackend.ScopedLocalOverride(null);
-            using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(NoStatsFireAndForget), ThreadPriority.Highest);
+            using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(NoStatsFireAndForget), priority: ThreadPriority.Highest);
             FifoTaskFactory testFactory = new(scheduler);
             Task? task = null;
             scheduler.FireAndForget(() => task = new FakeWork(1, true).DoDelayOnlyWorkAsync(CancellationToken.None).AsTask());

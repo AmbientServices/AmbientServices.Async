@@ -520,10 +520,10 @@ namespace AmbientServices
         /// <param name="bufferThreadCount">The number of threads to start with and to keep as a buffer after resetting.</param>
         /// <param name="maxThreads">The maximum number of threads to use, or zero to let the system decide.</param>
         /// <param name="priority">The <see cref="ThreadPriority"/> for the threads that will be used ot execute the tasks.</param>
-        /// <param name="executeDisposalCheck">Whether or not to verify that the instance is properly disposed.</param>
+        /// <param name="executeDisposalCheck">Whether or not to verify that the instance is properly disposed.  Defaults to true.</param>
         /// <param name="statistics">An optional <see cref="IAmbientStatistics"/> to use for reporting statistics, if not specified or null, uses the ambient implementation.</param>
         /// <returns>A new <see cref="FifoTaskScheduler"/> instance.</returns>
-        public static FifoTaskScheduler Start(string schedulerName, int bufferThreadCount, int maxThreads, ThreadPriority priority, bool executeDisposalCheck, IAmbientStatistics? statistics = null)
+        internal static FifoTaskScheduler Start(string schedulerName, int bufferThreadCount, int maxThreads, ThreadPriority priority, bool executeDisposalCheck, IAmbientStatistics? statistics = null)
         {
             FifoTaskScheduler ret = new(schedulerName, bufferThreadCount, maxThreads, priority, executeDisposalCheck, statistics);
             ret.Start();
@@ -541,11 +541,13 @@ namespace AmbientServices
         /// Starts a new <see cref="FifoTaskScheduler"/> with the specified configuration.
         /// </summary>
         /// <param name="schedulerName">The name of the task scheduler (used in logging and exceptions).</param>
-        /// <param name="priority">The <see cref="ThreadPriority"/> for the threads that will be used ot execute the tasks.</param>
+        /// <param name="bufferThreadCount">The number of threads to start with and to keep as a buffer after resetting.  Defaults to zero which uses the system-wide default.</param>
+        /// <param name="maxThreads">The maximum number of threads to use, or zero to let the system decide.  Defaults to zero, which uses the system-wide default.</param>
+        /// <param name="priority">The <see cref="ThreadPriority"/> for the threads that will be used ot execute the tasks.  Defaults to <see cref="ThreadPriority.Normal"/>.</param>
         /// <returns>A new <see cref="FifoTaskScheduler"/> instance.</returns>
-        public static FifoTaskScheduler Start(string schedulerName, ThreadPriority priority = ThreadPriority.Normal)
+        public static FifoTaskScheduler Start(string schedulerName, int bufferThreadCount = 0, int maxThreads = 0, ThreadPriority priority = ThreadPriority.Normal)
         {
-            FifoTaskScheduler ret = new(schedulerName, priority: priority);
+            FifoTaskScheduler ret = new(schedulerName, bufferThreadCount, maxThreads, priority);
             ret.Start();
             return ret;
         }
