@@ -385,14 +385,15 @@ namespace AmbientServices
 
         private readonly bool _executeDisposalCheck;
 #else
-        private readonly static int BufferThreadCount = LogicalCpuCount;
+        private const int BufferThreadsPerCpu = 2;
+        private readonly static int BufferThreadCount = LogicalCpuCount * BufferThreadsPerCpu;
         private static readonly int RetireCheckAfterCreationTickCount = (int)TimeSpan.FromMinutes(5).Ticks;
         private static readonly int RetireCheckFastestRetirementFrequencyTickCount = (int)TimeSpan.FromSeconds(60).Ticks;
         private const int MaxThreadsPerLogicalCpu = 150;
 #endif
 
         // initialize this here to be sure all the above values have been set (it uses many of them)
-        private static readonly FifoTaskScheduler DefaultTaskScheduler = FifoTaskScheduler.Start("FIFO Default", ThreadPriority.Normal, false);
+        private static readonly FifoTaskScheduler DefaultTaskScheduler = FifoTaskScheduler.Start("FIFO Default", 0, 0, ThreadPriority.Normal, false);
 
         /// <summary>
         /// Gets the default <see cref="FifoTaskScheduler"/>, one with normal priorities.
@@ -516,18 +517,20 @@ namespace AmbientServices
         /// Starts a new <see cref="FifoTaskScheduler"/> with the specified configuration.
         /// </summary>
         /// <param name="schedulerName">The name of the task scheduler (used in logging and exceptions).</param>
+        /// <param name="bufferThreadCount">The number of threads to start with and to keep as a buffer after resetting.</param>
+        /// <param name="maxThreads">The maximum number of threads to use, or zero to let the system decide.</param>
         /// <param name="priority">The <see cref="ThreadPriority"/> for the threads that will be used ot execute the tasks.</param>
         /// <param name="executeDisposalCheck">Whether or not to verify that the instance is properly disposed.</param>
         /// <param name="statistics">An optional <see cref="IAmbientStatistics"/> to use for reporting statistics, if not specified or null, uses the ambient implementation.</param>
         /// <returns>A new <see cref="FifoTaskScheduler"/> instance.</returns>
-        public static FifoTaskScheduler Start(string schedulerName, ThreadPriority priority, bool executeDisposalCheck, IAmbientStatistics? statistics = null)
+        public static FifoTaskScheduler Start(string schedulerName, int bufferThreadCount, int maxThreads, ThreadPriority priority, bool executeDisposalCheck, IAmbientStatistics? statistics = null)
         {
-            FifoTaskScheduler ret = new(schedulerName, priority, executeDisposalCheck, statistics);
+            FifoTaskScheduler ret = new(schedulerName, bufferThreadCount, maxThreads, priority, executeDisposalCheck, statistics);
             ret.Start();
             return ret;
         }
-        private FifoTaskScheduler (string scheduler, ThreadPriority priority, bool executeDisposalCheck, IAmbientStatistics? statistics = null)
-            : this(scheduler, priority, statistics)
+        private FifoTaskScheduler (string scheduler, int bufferThreadCount, int maxThreads, ThreadPriority priority, bool executeDisposalCheck, IAmbientStatistics? statistics = null)
+            : this(scheduler, bufferThreadCount, maxThreads, priority, statistics)
         {
 #if DEBUG
             _executeDisposalCheck = executeDisposalCheck;
@@ -542,7 +545,7 @@ namespace AmbientServices
         /// <returns>A new <see cref="FifoTaskScheduler"/> instance.</returns>
         public static FifoTaskScheduler Start(string schedulerName, ThreadPriority priority = ThreadPriority.Normal)
         {
-            FifoTaskScheduler ret = new(schedulerName, priority);
+            FifoTaskScheduler ret = new(schedulerName, priority: priority);
             ret.Start();
             return ret;
         }
@@ -550,18 +553,18 @@ namespace AmbientServices
         /// Starts a new <see cref="FifoTaskScheduler"/> in test mode with the specified configuration.
         /// </summary>
         /// <param name="schedulerName">The name of the task scheduler (used in logging and exceptions).</param>
-        /// <param name="schedulerMasterFrequencyMilliseconds">How many milliseconds to wait each time around the master scheduler loop, ie. the frequency with which to check to see if we should alter the number of worker threads.</param>
         /// <param name="bufferThreadCount">The number of threads to start with and to keep as a buffer after resetting.</param>
         /// <param name="maxThreads">The maximum number of threads to use, or zero to let the system decide.</param>
+        /// <param name="schedulerMasterFrequencyMilliseconds">How many milliseconds to wait each time around the master scheduler loop, ie. the frequency with which to check to see if we should alter the number of worker threads.</param>
         /// <param name="statistics">An optional <see cref="IAmbientStatistics"/> to use for reporting statistics, if not specified or null, uses the ambient implementation.</param>
         /// <returns>A new <see cref="FifoTaskScheduler"/> instance.</returns>
-        internal static FifoTaskScheduler Start(string schedulerName, int schedulerMasterFrequencyMilliseconds, int bufferThreadCount, int maxThreads, IAmbientStatistics? statistics = null)
+        internal static FifoTaskScheduler Start(string schedulerName, int bufferThreadCount, int maxThreads, int schedulerMasterFrequencyMilliseconds, IAmbientStatistics? statistics = null)
         {
-            FifoTaskScheduler ret = new(schedulerName, ThreadPriority.Normal, statistics, schedulerMasterFrequencyMilliseconds, bufferThreadCount, maxThreads, true);
+            FifoTaskScheduler ret = new(schedulerName, bufferThreadCount, maxThreads, ThreadPriority.Normal, statistics, schedulerMasterFrequencyMilliseconds, true);
             ret.Start();
             return ret;
         }
-        private FifoTaskScheduler(string schedulerName, ThreadPriority priority = ThreadPriority.Normal, IAmbientStatistics? statistics = null, int schedulerMasterFrequencyMilliseconds = 1000, int bufferThreadCount = 0, int maxThreads = 0, bool testMode = false)
+        private FifoTaskScheduler(string schedulerName, int bufferThreadCount = 0, int maxThreads = 0, ThreadPriority priority = ThreadPriority.Normal, IAmbientStatistics? statistics = null, int schedulerMasterFrequencyMilliseconds = 1000, bool testMode = false)
         {
             // save the scheduler name and priority
             _statistics = statistics ?? _AmbientStatistics.Local;
