@@ -406,31 +406,6 @@
             <param name="continuationOptions">A set of <see cref="T:System.Threading.Tasks.TaskContinuationOptions"/> controlling task continuations.</param>
             <param name="scheduler">The default <see cref="T:AmbientServices.FifoTaskScheduler"/> to use.</param>
         </member>
-        <member name="T:AmbientServices.FifoSynchronizationContext">
-            <summary>
-            A <see cref="T:System.Threading.SynchronizationContext"/> that schedules work items on the <see cref="T:AmbientServices.FifoTaskScheduler"/>.
-            </summary>
-        </member>
-        <member name="M:AmbientServices.FifoSynchronizationContext.Send(System.Threading.SendOrPostCallback,System.Object)">
-            <summary>
-            Synchronously posts a message.
-            </summary>
-            <param name="d">The message to post.</param>
-            <param name="state">The state to give to the post callback.</param>
-        </member>
-        <member name="M:AmbientServices.FifoSynchronizationContext.Post(System.Threading.SendOrPostCallback,System.Object)">
-            <summary>
-            Posts a message.
-            </summary>
-            <param name="d">The message to post.</param>
-            <param name="state">The state to give to the post callback.</param>
-        </member>
-        <member name="M:AmbientServices.FifoSynchronizationContext.CreateCopy">
-            <summary>
-            Creates a "copy" of this <see cref="T:AmbientServices.FifoSynchronizationContext"/>, which in this case just returns the singleton instance because there is nothing held in memory anyway.
-            </summary>
-            <returns>The same singleton <see cref="T:AmbientServices.FifoSynchronizationContext"/> on which we were called.</returns>
-        </member>
         <member name="T:AmbientServices.UnobservedExceptionEventArgs">
             <summary>
             A class that holds arguments for the unobserved exception arguments.
@@ -446,6 +421,16 @@
             Constructs an unhandled exception arguments from an exception.
             </summary>
             <param name="ex">The <see cref="P:AmbientServices.UnobservedExceptionEventArgs.Exception"/> that was not handled.</param>
+        </member>
+        <member name="T:AmbientServices.TaskInlinedEventArgs">
+            <summary>
+            A class that holds arguments for the unobserved exception arguments.
+            </summary>
+        </member>
+        <member name="M:AmbientServices.TaskInlinedEventArgs.#ctor">
+            <summary>
+            Constructs a task inlined arguments.
+            </summary>
         </member>
         <member name="T:AmbientServices.FifoWorker">
             <summary>
@@ -478,14 +463,14 @@
             Gets the default <see cref="T:AmbientServices.FifoTaskScheduler"/>, one with normal priorities.
             </summary>
         </member>
-        <member name="P:AmbientServices.FifoTaskScheduler.SynchronizationContext">
-            <summary>
-            Gets the <see cref="P:AmbientServices.FifoTaskScheduler.SynchronizationContext"/> for this task scheduler.
-            </summary>
-        </member>
         <member name="E:AmbientServices.FifoTaskScheduler.UnobservedException">
             <summary>
             An event that notifies scubscribers whenever an exception is thrown and not handled.
+            </summary>
+        </member>
+        <member name="E:AmbientServices.FifoTaskScheduler.TaskInlined">
+            <summary>
+            An event that notifies scubscribers whenever a task is inlined due to all threads currently being busy.
             </summary>
         </member>
         <member name="P:AmbientServices.FifoTaskScheduler.LastScaleUp">
@@ -583,20 +568,6 @@
             </summary>
             <param name="action">The action to run.</param>
             <param name="tcs">The <see cref="T:System.Threading.Tasks.TaskCompletionSource`1"/> to record the results (or exception) in.</param>
-        </member>
-        <member name="M:AmbientServices.FifoTaskScheduler.Send(System.Threading.SendOrPostCallback,System.Object)">
-            <summary>
-            Synchronously posts a message.
-            </summary>
-            <param name="d">The message to post.</param>
-            <param name="state">The state to give to the post callback.</param>
-        </member>
-        <member name="M:AmbientServices.FifoTaskScheduler.Post(System.Threading.SendOrPostCallback,System.Object)">
-            <summary>
-            Posts a message.
-            </summary>
-            <param name="d">The message to post.</param>
-            <param name="state">The state to give to the post callback.</param>
         </member>
         <member name="M:AmbientServices.FifoTaskScheduler.TransferWork``1(System.Func{System.Threading.Tasks.ValueTask{``0}})">
             <summary>
@@ -703,20 +674,6 @@
             <summary>
             Gets the maximum number of tasks that can be concurrently running under this scheduler.
             </summary>
-        </member>
-        <member name="T:AmbientServices.TaskSchedulerExtensions">
-            <summary>
-            A class that contains extensions for <see cref="T:System.Threading.Tasks.TaskScheduler"/>.
-            </summary>
-        </member>
-        <member name="M:AmbientServices.TaskSchedulerExtensions.StartNewWork(System.Threading.Tasks.TaskScheduler,System.Action)">
-            <summary>
-            Runs a long-running action, always running it entirely on a scheduler thread, but gets a <see cref="T:System.Threading.Tasks.Task"/> we can use wait for completion when it does finally finish or get canceled.
-            </summary>
-            <param name="scheduler">The <see cref="T:System.Threading.Tasks.TaskScheduler"/> to use.</param>
-            <param name="action">The action to run on a scheduler thread.  May be an "async void" action.</param>
-            <returns>A <see cref="T:System.Threading.Tasks.Task"/> which may be used to wait for the function to complete after it is cancelled (or exits on its own).</returns>
-            <remarks>Exceptions thrown from the function will be available to be observed through the returned <see cref="T:System.Threading.Tasks.Task"/>.</remarks>
         </member>
         <member name="T:AmbientServices.InterlockedSinglyLinkedList`1">
             <summary>

@@ -10,25 +10,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Setup .NET 3.1
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v2
       with:
         dotnet-version: 3.1.x
     - name: Setup .NET 5.0
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v2
       with:
         dotnet-version: 5.0.x
     - name: Setup .NET 6.0
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v2
       with:
         dotnet-version: 6.0.x   
     - name: Setup .NET 7.0
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v2
       with:
         dotnet-version: 7.0.x      
-    - name: Set Version
-      run: dotnet SetVersion.dll 0.1.${{ github.run_number }} -NoPackageOutputPath
+    - name: Install dotnet-set-version
+      run: dotnet tool install --global dotnet-set-version
+    - name: Run dotnet-set-version
+      run: dotnet-set-version 0.1.${{ github.run_number }} -NoPackageOutputPath
+    - name: Install dotnet-markdown-sample-code
+      run: dotnet tool install --global dotnet-markdown-sample-code
     - name: Build AmbientServices.Async
       run: dotnet build AmbientServices.Async -c Release
     - name: Build AmbientServices.Async.Samples
@@ -37,10 +41,10 @@ jobs:
       run: dotnet build AmbientServices.Async.Test -c Release
     - name: Package
       run: dotnet pack AmbientServices.Async -c Release
-    - name: Test .NET 6 with coverage
-      run: dotnet test -c Release -f net6.0 --collect:"XPlat Code Coverage" --logger:"trx;LogFileName=unit.testresults.trx" --blame-hang-timeout 120s
+    - name: Test .NET 7 with coverage
+      run: dotnet test -c Release -f net7.0 --collect:"XPlat Code Coverage" --logger:"trx;LogFileName=unit.testresults.trx" --blame-hang-timeout 120s
     - name: ReportGenerator
-      uses: danielpalme/ReportGenerator-GitHub-Action@4.8.9
+      uses: danielpalme/ReportGenerator-GitHub-Action@5.1.19
       with:
         reports: '**/coverage.cobertura.xml' # REQUIRED # The coverage reports that should be parsed (separated by semicolon). Globbing is supported.
         targetdir: 'coveragereport' # REQUIRED # The directory where the generated report should be saved.
@@ -60,6 +64,8 @@ jobs:
       with:
         name: CoverageReport # Artifact name        
         path: coveragereport # Directory containing files to upload
+    - name: Test .NET 6.0
+      run: dotnet test -c Release -f net6.0 --blame-hang-timeout 120s
     - name: Test .NET 5.0
       run: dotnet test -c Release -f net5.0 --blame-hang-timeout 120s
     - name: Test .NET Core 3.1
