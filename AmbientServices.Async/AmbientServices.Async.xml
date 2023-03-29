@@ -10,7 +10,7 @@
             When migrating code from sync to async, begin from the bottom off the call stack.
             Use <see cref="M:AmbientServices.Async.RunSync(System.Func{System.Threading.Tasks.ValueTask})"/> or <see cref="M:AmbientServices.Async.RunTaskSync(System.Func{System.Threading.Tasks.Task})"/> at the transition from sync to async, forcing the task to run in a synchronous ambient context.
             Use await <see cref="M:AmbientServices.Async.Run(System.Func{System.Threading.Tasks.ValueTask})"/> or <see cref="M:AmbientServices.Async.RunTask(System.Func{System.Threading.Tasks.Task})"/> as the default asynchronous invocation, which will run synchronously in a synchronous ambient context, and asynchronously in an asynchronous ambient context.
-            Use await <see cref="!:RunAsync(Func&lt;ValueTask&gt;)"/> <see cref="!:RunTaskAsync(Func&lt;Task&gt;)"/> to force asynchronous execution within a synchronous ambient context (even within <see cref="M:AmbientServices.Async.RunSync(System.Func{System.Threading.Tasks.ValueTask})"/>).
+            Use await <see cref="M:AmbientServices.Async.RunAsync(System.Func{System.Threading.Tasks.ValueTask},System.Threading.SynchronizationContext)"/> or <see cref="M:AmbientServices.Async.RunTaskAsync(System.Func{System.Threading.Tasks.Task},System.Threading.SynchronizationContext)"/> to force asynchronous execution within a synchronous ambient context (even within <see cref="M:AmbientServices.Async.RunSync(System.Func{System.Threading.Tasks.ValueTask})"/>).
             As migration progresses, calls to <see cref="M:AmbientServices.Async.RunSync(System.Func{System.Threading.Tasks.ValueTask})"/> and <see cref="M:AmbientServices.Async.RunTaskSync(System.Func{System.Threading.Tasks.Task})"/> move up the call stack, being gradually replaced by calls to <see cref="M:AmbientServices.Async.Run(System.Func{System.Threading.Tasks.ValueTask})"/> or <see cref="M:AmbientServices.Async.RunTask(System.Func{System.Threading.Tasks.Task})"/>.
             Calls that use await without one of these as the target will run asynchonously in a newly spawned async ambient context.
             </summary>
@@ -531,16 +531,18 @@
             <param name="bufferThreadCount">The number of threads to start with and to keep as a buffer after resetting.</param>
             <param name="maxThreads">The maximum number of threads to use, or zero to let the system decide.</param>
             <param name="priority">The <see cref="T:System.Threading.ThreadPriority"/> for the threads that will be used ot execute the tasks.</param>
-            <param name="executeDisposalCheck">Whether or not to verify that the instance is properly disposed.</param>
+            <param name="executeDisposalCheck">Whether or not to verify that the instance is properly disposed.  Defaults to true.</param>
             <param name="statistics">An optional <see cref="T:AmbientServices.IAmbientStatistics"/> to use for reporting statistics, if not specified or null, uses the ambient implementation.</param>
             <returns>A new <see cref="T:AmbientServices.FifoTaskScheduler"/> instance.</returns>
         </member>
-        <member name="M:AmbientServices.FifoTaskScheduler.Start(System.String,System.Threading.ThreadPriority)">
+        <member name="M:AmbientServices.FifoTaskScheduler.Start(System.String,System.Int32,System.Int32,System.Threading.ThreadPriority)">
             <summary>
             Starts a new <see cref="T:AmbientServices.FifoTaskScheduler"/> with the specified configuration.
             </summary>
             <param name="schedulerName">The name of the task scheduler (used in logging and exceptions).</param>
-            <param name="priority">The <see cref="T:System.Threading.ThreadPriority"/> for the threads that will be used ot execute the tasks.</param>
+            <param name="bufferThreadCount">The number of threads to start with and to keep as a buffer after resetting.  Defaults to zero which uses the system-wide default.</param>
+            <param name="maxThreads">The maximum number of threads to use, or zero to let the system decide.  Defaults to zero, which uses the system-wide default.</param>
+            <param name="priority">The <see cref="T:System.Threading.ThreadPriority"/> for the threads that will be used ot execute the tasks.  Defaults to <see cref="F:System.Threading.ThreadPriority.Normal"/>.</param>
             <returns>A new <see cref="T:AmbientServices.FifoTaskScheduler"/> instance.</returns>
         </member>
         <member name="M:AmbientServices.FifoTaskScheduler.Start(System.String,System.Int32,System.Int32,System.Int32,AmbientServices.IAmbientStatistics)">

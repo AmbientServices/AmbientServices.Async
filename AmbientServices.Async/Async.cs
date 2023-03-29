@@ -14,7 +14,7 @@ namespace AmbientServices
     /// When migrating code from sync to async, begin from the bottom off the call stack.
     /// Use <see cref="RunSync(Func{ValueTask})"/> or <see cref="RunTaskSync(Func{Task})"/> at the transition from sync to async, forcing the task to run in a synchronous ambient context.
     /// Use await <see cref="Run(Func{ValueTask})"/> or <see cref="RunTask(Func{Task})"/> as the default asynchronous invocation, which will run synchronously in a synchronous ambient context, and asynchronously in an asynchronous ambient context.
-    /// Use await <see cref="RunAsync(Func{ValueTask})"/> <see cref="RunTaskAsync(Func{Task})"/> to force asynchronous execution within a synchronous ambient context (even within <see cref="RunSync(Func{ValueTask})"/>).
+    /// Use await <see cref="RunAsync(Func{ValueTask},SynchronizationContext?)"/> or <see cref="RunTaskAsync(Func{Task},SynchronizationContext?)"/> to force asynchronous execution within a synchronous ambient context (even within <see cref="RunSync(Func{ValueTask})"/>).
     /// As migration progresses, calls to <see cref="RunSync(Func{ValueTask})"/> and <see cref="RunTaskSync(Func{Task})"/> move up the call stack, being gradually replaced by calls to <see cref="Run(Func{ValueTask})"/> or <see cref="RunTask(Func{Task})"/>.
     /// Calls that use await without one of these as the target will run asynchonously in a newly spawned async ambient context.
     /// </summary>
