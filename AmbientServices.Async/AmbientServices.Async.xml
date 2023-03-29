@@ -406,25 +406,9 @@
             <param name="continuationOptions">A set of <see cref="T:System.Threading.Tasks.TaskContinuationOptions"/> controlling task continuations.</param>
             <param name="scheduler">The default <see cref="T:AmbientServices.FifoTaskScheduler"/> to use.</param>
         </member>
-        <member name="T:AmbientServices.UnobservedExceptionEventArgs">
-            <summary>
-            A class that holds arguments for the unobserved exception arguments.
-            </summary>
-        </member>
-        <member name="P:AmbientServices.UnobservedExceptionEventArgs.Exception">
-            <summary>
-            Gets the <see cref="P:AmbientServices.UnobservedExceptionEventArgs.Exception"/> that was not handled.
-            </summary>
-        </member>
-        <member name="M:AmbientServices.UnobservedExceptionEventArgs.#ctor(System.Exception)">
-            <summary>
-            Constructs an unhandled exception arguments from an exception.
-            </summary>
-            <param name="ex">The <see cref="P:AmbientServices.UnobservedExceptionEventArgs.Exception"/> that was not handled.</param>
-        </member>
         <member name="T:AmbientServices.TaskInlinedEventArgs">
             <summary>
-            A class that holds arguments for the unobserved exception arguments.
+            A class that holds arguments for the task inlined event arguments.
             </summary>
         </member>
         <member name="M:AmbientServices.TaskInlinedEventArgs.#ctor">
@@ -463,9 +447,9 @@
             Gets the default <see cref="T:AmbientServices.FifoTaskScheduler"/>, one with normal priorities.
             </summary>
         </member>
-        <member name="E:AmbientServices.FifoTaskScheduler.UnobservedException">
+        <member name="E:AmbientServices.FifoTaskScheduler.UnhandledException">
             <summary>
-            An event that notifies scubscribers whenever an exception is thrown and not handled.
+            An event that notifies scubscribers whenever an exception is thrown and not handled by the specified non-Task delegate.
             </summary>
         </member>
         <member name="E:AmbientServices.FifoTaskScheduler.TaskInlined">
@@ -566,13 +550,6 @@
             Tells the scheduler master thread to reset because we've just finished a massively parallel operation has finished and excess threads are no longer needed.
             </summary>
         </member>
-        <member name="M:AmbientServices.FifoTaskScheduler.ExecuteActionWithTaskCompletionSource(System.Action,System.Threading.Tasks.TaskCompletionSource{System.Boolean})">
-            <summary>
-            Executes an action using a <see cref="T:System.Threading.Tasks.TaskCompletionSource`1"/>.  Exceptions will not be thrown directly, but will instead be reflected in <paramref name="tcs"/>.
-            </summary>
-            <param name="action">The action to run.</param>
-            <param name="tcs">The <see cref="T:System.Threading.Tasks.TaskCompletionSource`1"/> to record the results (or exception) in.</param>
-        </member>
         <member name="M:AmbientServices.FifoTaskScheduler.TransferWork``1(System.Func{System.Threading.Tasks.ValueTask{``0}})">
             <summary>
             Transfers asynchronous work to this scheduler, running continuations within the scheduler so that subsequent work also runs on this scheduler.
@@ -584,27 +561,6 @@
             <summary>
             Transfers asynchronous work to this scheduler, running continuations within the scheduler so that subsequent work also runs on this scheduler.
             Exceptions are thrown from the function out to the caller.
-            </summary>
-            <param name="func">The asynchronous function that does the work.</param>
-        </member>
-        <member name="M:AmbientServices.FifoTaskScheduler.QueueWork(System.Action)">
-            <summary>
-            Queues synchronous work to this scheduler, running continuations within the scheduler if workers are available, and running it inline (synchronously) if not.
-            </summary>
-            <param name="action">The action to run.</param>
-            <returns>A <see cref="T:System.Threading.Tasks.Task"/> representing the work, no matter whether it was scheduled on a worker thread or run inline.</returns>
-            <remarks>Exceptions thrown from <paramref name="action"/> are placed into the returned <see cref="T:System.Threading.Tasks.Task"/>.</remarks>
-        </member>
-        <member name="M:AmbientServices.FifoTaskScheduler.QueueWork``1(System.Func{System.Threading.Tasks.ValueTask{``0}})">
-            <summary>
-            Queues asynchronous work to this scheduler, running everything within the scheduler if workers are available, and running inline, with continuations in the scheduler if not.
-            </summary>
-            <typeparam name="T">The type returned by the function.</typeparam>
-            <param name="func">The asynchronous function that does the work.</param>
-        </member>
-        <member name="M:AmbientServices.FifoTaskScheduler.QueueWork(System.Func{System.Threading.Tasks.ValueTask})">
-            <summary>
-            Queues asynchronous work to this scheduler, running everything within the scheduler if workers are available, and running inline, with continuations in the scheduler if not.
             </summary>
             <param name="func">The asynchronous function that does the work.</param>
         </member>

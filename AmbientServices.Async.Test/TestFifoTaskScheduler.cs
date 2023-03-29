@@ -23,6 +23,65 @@ namespace AmbientServices.Test
         private static readonly AmbientService<IAmbientLogger> LoggerBackend = Ambient.GetService<IAmbientLogger>();
         private static readonly AmbientService<IAmbientStatistics> StatisticsBackend = Ambient.GetService<IAmbientStatistics>();
         private static readonly AmbientService<IMockCpuUsage> MockCpu = Ambient.GetService<IMockCpuUsage>();
+        private static int TasksInlined;
+
+        private static void FifoTaskScheduler_TaskInlined(object? sender, TaskInlinedEventArgs e)
+        {
+            Interlocked.Increment(ref TasksInlined);
+        }
+
+        [TestMethod]
+        public void UnhandledException()
+        {
+            Guid unique = Guid.NewGuid();
+            UnhandledExceptionTracker tracker = new(unique);
+            using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(UnhandledException), priority: ThreadPriority.Highest);
+            try
+            {
+                FifoTaskScheduler.UnhandledException += tracker.FifoTaskScheduler_UnhandledException;
+                scheduler.ExecuteAction(() => throw new ExpectedException(nameof(UnhandledException) + ":" + unique));
+            }
+            finally
+            {
+                FifoTaskScheduler.UnhandledException -= tracker.FifoTaskScheduler_UnhandledException;
+            }
+            Assert.AreEqual(1, tracker.UnhandledExceptions);
+            Assert.AreEqual(1, tracker.FifoTaskSchedulerCount);
+        }
+        [TestMethod]
+        public void TaskInlinedEvent()
+        {
+            try
+            {
+                FifoTaskScheduler.TaskInlined += FifoTaskScheduler_TaskInlined;
+                // force a task to run inline
+                using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(TaskInlinedEvent), 1, 2, 10);
+                FifoTaskFactory factory = new(scheduler);
+                List<Task> tasks = new();
+                CancellationTokenSource cts = new();
+                for (int i = 0; i < 2000; ++i)
+                {
+                    FakeWork w = new(i, true);
+                    tasks.Add(factory.StartNew(() =>
+                    {
+                        if (TasksInlined > 0) { cts.Cancel(); return Task.CompletedTask; }
+                        return w.DoDelayOnlyWorkAsync(CancellationToken.None).AsTask();
+                    }, CancellationToken.None, TaskCreationOptions.None, scheduler));
+                }
+                Task.WaitAll(tasks.ToArray());
+                if (TasksInlined > 0) return;   // this works too!
+            }
+            catch (OperationCanceledException)
+            {
+                // we expect to get canceled for this test!
+                return;
+            }
+            finally
+            {
+                FifoTaskScheduler.TaskInlined -= FifoTaskScheduler_TaskInlined;
+            }
+            Assert.Fail("Unable to force task to run inline!");
+        }
 
         [TestMethod]
         public async Task RunWithStartNew()
@@ -143,55 +202,6 @@ namespace AmbientServices.Test
             }
         }
         [TestMethod]
-        public async Task QueueWorkAsync()
-        {
-            //using IDisposable d = LoggerBackend.ScopedLocalOverride(new AmbientTraceLogger());
-            List<Task> tasks = new();
-            for (int i = 0; i < 100; ++i)
-            {
-                FakeWork w = new(i, true);
-                tasks.Add(FifoTaskScheduler.Default.QueueWork(() => w.DoMixedWorkAsync(CancellationToken.None, false)));
-            }
-            await Task.WhenAll(tasks.ToArray());
-            FifoTaskScheduler.Default.Reset();
-        }
-        [TestMethod]
-        public async Task QueueWorkAction()
-        {
-            //using IDisposable d = LoggerBackend.ScopedLocalOverride(new AmbientTraceLogger());
-            using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(QueueWorkAction), 1, 2, 10);
-            List<Task?> tasks = new();
-            for (int i = 0; i < 10; ++i)
-            {
-                FakeWork w = new(i, true);
-                tasks.Add(scheduler.QueueWork(() => Async.RunSync(() => w.DoMixedWorkAsync(CancellationToken.None, false))));
-            }
-            await Task.WhenAll(tasks.Where(t => t is not null).ToArray()!); // the Where takes care of ensuring there are no null Tasks
-            scheduler.Reset();
-        }
-        [TestMethod]
-        public void ExecuteActionWithTaskCompletionSource()
-        {
-            //using IDisposable d = LoggerBackend.ScopedLocalOverride(new AmbientTraceLogger());
-            using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(ExecuteActionWithTaskCompletionSource), 1, 2, 10);
-            TaskCompletionSource<bool> tcs = new();
-            scheduler.ExecuteActionWithTaskCompletionSource(() => throw new ExpectedException(), tcs);
-            Assert.AreEqual(typeof(AggregateException), tcs.Task.Exception?.GetType());
-        }
-        [TestMethod]
-        public async Task QueueWorkWithResults()
-        {
-            //using IDisposable d = LoggerBackend.ScopedLocalOverride(new AmbientTraceLogger());
-            List<Task<bool>> tasks = new();
-            for (int i = 0; i < 1000; ++i)
-            {
-                FakeWork w = new(i, true);
-                tasks.Add(FifoTaskScheduler.Default.QueueWork(async () => { await w.DoMixedWorkAsync(CancellationToken.None, false); return true; }));
-            }
-            await Task.WhenAll(tasks.ToArray());
-            FifoTaskScheduler.Default.Reset();
-        }
-        [TestMethod]
         public void ExecuteWithCatchAndLog()
         {
             using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(ExecuteWithCatchAndLog));
@@ -246,7 +256,7 @@ namespace AmbientServices.Test
             Debug.Assert(DateTime.UtcNow > lastReset);
             ConcurrentBag<Task> tasks = new();
             int i;
-            for (i = 0; i < 100 && scheduler.ReadyWorkers < 3; ++i)
+            for (i = 0; i < 250 && scheduler.ReadyWorkers < 3; ++i)
             {
                 FakeWork w = new(i, true);
                 tasks.Add(scheduler.Run(() => w.DoMixedWorkAsync(CancellationToken.None).AsTask()));       // note that we need to do mixed work here because otherwise everything runs on one or two threads
@@ -309,35 +319,77 @@ namespace AmbientServices.Test
             }
             Assert.ThrowsException<TaskSchedulerException>(() => test.StartNew(() => { }));     // our code throws an ObjectDisposedException but TaskScheduler converts it
         }
-        private static int UnobservedExceptions;
-        [TestMethod]
+
+        [TestMethod]        // Note that this test will fail when run in isolation, possibly because the garbage collection can't be forced to collect the task, or the debugger holds on to the task?
         public async Task UnobservedTaskException()
         {
             //using IDisposable d = LoggerBackend.ScopedLocalOverride(new AmbientTraceLogger());
+            Guid unique = Guid.NewGuid();
+            UnhandledExceptionTracker tracker = new(unique);
             try
             {
-                TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
-                _ = FifoTaskFactory.Default.StartNew(() => ThrowExpectedException());
+                TaskScheduler.UnobservedTaskException += tracker.TaskScheduler_UnobservedTaskException;
+                FifoTaskScheduler.UnhandledException += tracker.TaskScheduler_UnobservedTaskException;
+                StartTaskWithUnobservedException(unique);
                 for (int loop = 0; loop < 100; ++loop)
                 {
-                    if (UnobservedExceptions > 0) break;
+                    if (tracker.UnhandledExceptions > 0) break;
                     await Task.Delay(100);
+                    GC.Collect(2, GCCollectionMode.Forced, true, true);
+                    GC.WaitForPendingFinalizers();
                 }
-                Assert.AreEqual(1, UnobservedExceptions);
+                Assert.IsTrue(tracker.UnhandledExceptions >= 1);
+                Assert.IsTrue(tracker.TaskSchedulerCount >= 1);
             }
             finally
             {
-                TaskScheduler.UnobservedTaskException -= TaskScheduler_UnobservedTaskException;
+                FifoTaskScheduler.UnhandledException -= tracker.TaskScheduler_UnobservedTaskException;
+                TaskScheduler.UnobservedTaskException -= tracker.TaskScheduler_UnobservedTaskException;
+            }
+        }
+        private static void StartTaskWithUnobservedException(Guid unique)
+        {
+            _ = FifoTaskFactory.Default.StartNew(() => ThrowExpectedUnobservedTaskException(unique));
+        }
+
+        class UnhandledExceptionTracker
+        {
+            private Guid _unique;
+            private int _unhandledExceptions;
+            private int _taskSchedulerCount;
+            private int _fifoTaskSchedulerCount;
+
+            internal UnhandledExceptionTracker(Guid unique)
+            {
+                _unique = unique;
+            }
+
+            internal int UnhandledExceptions => _unhandledExceptions;
+            internal int TaskSchedulerCount => _taskSchedulerCount;
+            internal int FifoTaskSchedulerCount => _fifoTaskSchedulerCount;
+
+            internal void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+            {
+                Assert.AreEqual(typeof(AggregateException), e.Exception?.GetType());
+                Assert.AreEqual(typeof(ExpectedException), e.Exception?.InnerExceptions[0].GetType());
+                if ((e.Exception?.InnerExceptions[0] as ExpectedException)?.TestName?.Contains(_unique.ToString()) ?? false) Interlocked.Increment(ref _unhandledExceptions);
+                Interlocked.Increment(ref _taskSchedulerCount);
+                e.SetObserved();
+            }
+            internal void FifoTaskScheduler_UnhandledException(object? sender, UnobservedTaskExceptionEventArgs e)
+            {
+                Assert.AreEqual(typeof(AggregateException), e.Exception?.GetType());
+                Assert.AreEqual(typeof(ExpectedException), e.Exception?.InnerExceptions[0].GetType());
+                if ((e.Exception?.InnerExceptions[0] as ExpectedException)?.TestName?.Contains(_unique.ToString()) ?? false) Interlocked.Increment(ref _unhandledExceptions);
+                Interlocked.Increment(ref _fifoTaskSchedulerCount);
+                e.SetObserved();
             }
         }
 
-        private void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+        private static void ThrowExpectedUnobservedTaskException(Guid unique)
         {
-            Assert.AreEqual(typeof(AggregateException), e.Exception?.GetType());
-            Assert.AreEqual(typeof(ExpectedException), e.Exception?.InnerExceptions[0].GetType());
-            Interlocked.Increment(ref UnobservedExceptions);
+            throw new ExpectedException(nameof(UnobservedTaskException) + ":" + unique);
         }
-
         private static void ThrowExpectedException()
         {
             throw new ExpectedException();
@@ -364,11 +416,10 @@ namespace AmbientServices.Test
         public async Task InvokeException()
         {
             await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => FifoTaskScheduler.Default.Run<int>(null!));
+            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => FifoTaskScheduler.Default.TransferWork((Func<ValueTask>?)null!));
+            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => FifoTaskScheduler.Default.TransferWork((Func<ValueTask<int>>?)null!));
             Assert.ThrowsException<ArgumentNullException>(() => FifoTaskScheduler.Default.Run(null!));
             Assert.ThrowsException<ArgumentNullException>(() => FifoTaskScheduler.Default.FireAndForget(null!));
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => FifoTaskScheduler.Default.QueueWork((Func<ValueTask>)null!));
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => FifoTaskScheduler.Default.QueueWork((Func<ValueTask<int>>)null!));
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => FifoTaskScheduler.Default.QueueWork((Action)null!));
             await Assert.ThrowsExceptionAsync<ExpectedException>(() => FifoTaskScheduler.Default.Run<int>(() => throw new ExpectedException()));
             await Assert.ThrowsExceptionAsync<ExpectedException>(() => FifoTaskScheduler.Default.Run(() => throw new ExpectedException()));
         }
@@ -455,7 +506,6 @@ namespace AmbientServices.Test
                 Assert.AreEqual(testvalue, ali.Value);
             }, CancellationToken.None, TaskCreationOptions.None, scheduler);
             await scheduler.Run(() => Assert.AreEqual(testvalue, ali.Value));
-            await scheduler.QueueWork(() => Assert.AreEqual(testvalue, ali.Value));
         }
         [TestMethod]
         public async Task ExceptionHandling1()
@@ -481,39 +531,10 @@ namespace AmbientServices.Test
             await Task.Delay(1000);
         }
         [TestMethod]
-        public async Task ExceptionHandling3()
-        {
-            using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(ExceptionHandling3));
-            TaskCompletionSource<bool> tcs = new();
-            await ExpectException(async () => { scheduler.ExecuteActionWithTaskCompletionSource(() => throw new ExpectedException(), tcs); await tcs.Task; });
-            await Task.Delay(1000);
-        }
-        [TestMethod]
         public async Task ExceptionHandling4()
         {
             using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(ExceptionHandling4));
             await ExpectExceptionTask(() => scheduler.Run(() => throw new ExpectedException()));
-            await Task.Delay(1000);
-        }
-        [TestMethod]
-        public async Task ExceptionHandling5()
-        {
-            using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(ExceptionHandling5));
-            await ExpectException(async () => await scheduler.QueueWork(() => throw new ExpectedException()));
-            await Task.Delay(1000);
-        }
-        [TestMethod]
-        public async Task ExceptionHandling6()
-        {
-            using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(ExceptionHandling6));
-            await ExpectException(async () => await scheduler.QueueWork(ThrowExceptionAsync));
-            await Task.Delay(1000);
-        }
-        [TestMethod]
-        public async Task ExceptionHandling7()
-        {
-            using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(ExceptionHandling7));
-            await ExpectException(async () => await scheduler.QueueWork(ThrowExceptionAsyncType<int>));
             await Task.Delay(1000);
         }
         [TestMethod]

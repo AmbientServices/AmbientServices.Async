@@ -39,6 +39,7 @@ namespace AmbientServices.Utilities
             _wallTicksAtWindowStart = DateTime.UtcNow.Ticks - _updateWindowTicks;
             _cpuTicksAtWindowStart =
 #if NET5_0_OR_GREATER
+                // unable to cover this line of code because the test harness is not a browser!
                 OperatingSystem.IsBrowser() ? 0 :
 #endif
                 Process.GetCurrentProcess().TotalProcessorTime.Ticks;
@@ -67,6 +68,7 @@ namespace AmbientServices.Utilities
                 long oldWallTicks = lastWallTicksAtWindowStart;
                 long nowCpuTicks =
 #if NET5_0_OR_GREATER
+                    // unable to cover this line of code because the test harness is not a browser!
                     OperatingSystem.IsBrowser() ? 0 :
 #endif
                     Process.GetCurrentProcess().TotalProcessorTime.Ticks;
@@ -74,6 +76,7 @@ namespace AmbientServices.Utilities
                 long wallTicks = nowTicks - oldWallTicks;
                 long cpuTicks =
 #if NET5_0_OR_GREATER
+                    // unable to cover this line of code because the test harness is not a browser!
                     OperatingSystem.IsBrowser() ? wallTicks * Environment.ProcessorCount * 3 / 4 :       // for now, hardcode CPU usage at 75% for browsers
 #endif
                     nowCpuTicks - oldCpuTicks;

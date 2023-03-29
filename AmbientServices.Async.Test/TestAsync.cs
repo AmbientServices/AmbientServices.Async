@@ -878,5 +878,13 @@ namespace AmbientServices.Test
                 await Task.CompletedTask;
             });
         }
+        [TestMethod]
+        public async Task ArgumentNullExceptions()
+        {
+            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => Async.RunTask(null!));
+            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => Async.RunTask<int>(null!));
+            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => Async.Run(null!).AsTask());
+            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => Async.Run<int>(null!).AsTask());
+        }
     }
 }

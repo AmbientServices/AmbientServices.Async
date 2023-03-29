@@ -122,26 +122,7 @@ namespace AmbientServices
     }
 #endif
     /// <summary>
-    /// A class that holds arguments for the unobserved exception arguments.
-    /// </summary>
-    public class UnobservedExceptionEventArgs : EventArgs
-    {
-        /// <summary>
-        /// Gets the <see cref="Exception"/> that was not handled.
-        /// </summary>
-        public Exception Exception { get; }
-
-        /// <summary>
-        /// Constructs an unhandled exception arguments from an exception.
-        /// </summary>
-        /// <param name="ex">The <see cref="Exception"/> that was not handled.</param>
-        public UnobservedExceptionEventArgs(Exception ex)
-        {
-            Exception = ex;
-        }
-    }
-    /// <summary>
-    /// A class that holds arguments for the unobserved exception arguments.
+    /// A class that holds arguments for the task inlined event arguments.
     /// </summary>
     public class TaskInlinedEventArgs : EventArgs
     {
@@ -168,7 +149,7 @@ namespace AmbientServices
         private readonly Thread _thread;
         private readonly ManualResetEvent _wakeThread = new(false);
         private readonly ManualResetEvent _allowDisposal = new(false);
-        private Delegate? _actionToPerform; // interlocked
+        private Action? _actionToPerform;   // interlocked
         private long _invokeTicks;          // interlocked
         private int _stop;                  // interlocked
 
@@ -199,7 +180,7 @@ namespace AmbientServices
         private readonly string fStackAtConstruction = new StackTrace().ToString();
         ~FifoWorker()
         {
-            Debug.Fail($"{nameof(FifoWorker)} '{_schedulerName}' instance not disposed!  Constructed at: {fStackAtConstruction}");
+            Debug.Fail($"{nameof(FifoWorker)} '{_schedulerName}:{_id}' instance not disposed!  Constructed at: {fStackAtConstruction}");
             Dispose();
         }
 #endif
@@ -229,11 +210,10 @@ namespace AmbientServices
             // are we already stopped?
             if (_stop != 0 || _scheduler.Stopping)
             {
-                throw new InvalidOperationException("The Worker has already been stopped!");
+                throw new InvalidOperationException("The worker has already been stopped!");
             }
-            Action a = action;
             // try to put in this work--if there is something already there, we must be busy!
-            if (Interlocked.CompareExchange(ref _actionToPerform, a, null) != null)
+            if (Interlocked.CompareExchange(ref _actionToPerform, action, null) != null)
             {
                 // the worker was busy so we couldn't marshal the action to it!
                 throw new InvalidOperationException("Worker thread already in use!");
@@ -305,12 +285,8 @@ namespace AmbientServices
                             _scheduler.SchedulerBusyWorkers?.Increment();
                             try
                             {
-                                // perform the work
-                                _actionToPerform.DynamicInvoke();
-                            }
-                            catch (Exception ex)
-                            {
-                                _scheduler.RaiseUnobservedException(ex);
+                                // perform the work (handling any uncaught exception)
+                                _scheduler.ExecuteAction(_actionToPerform);
                             }
                             finally
                             {
@@ -435,17 +411,17 @@ namespace AmbientServices
         private long _lastResetTime;                                    // keeps track of the last time a reset happened
 
         /// <summary>
-        /// An event that notifies scubscribers whenever an exception is thrown and not handled.
+        /// An event that notifies scubscribers whenever an exception is thrown and not handled by the specified non-Task delegate.
         /// </summary>
-        public static event EventHandler<UnobservedExceptionEventArgs>? UnobservedException;
+        public static event EventHandler<UnobservedTaskExceptionEventArgs>? UnhandledException;
         /// <summary>
         /// An event that notifies scubscribers whenever a task is inlined due to all threads currently being busy.
         /// </summary>
         public static event EventHandler<TaskInlinedEventArgs>? TaskInlined;
 
-        internal void RaiseUnobservedException(Exception ex)
+        internal void RaiseUnhandledException(Exception ex)
         {
-            UnobservedException?.Invoke(this, new UnobservedExceptionEventArgs(ex));
+            UnhandledException?.Invoke(this, new UnobservedTaskExceptionEventArgs((ex as AggregateException) ?? new AggregateException(ex)));
         }
 
         internal bool Stopping => _stopMasterThread != 0;
@@ -850,31 +826,6 @@ namespace AmbientServices
             Debug.Assert(!worker.IsBusy);
             _readyWorkerList.Push(worker);
         }
-
-        /// <summary>
-        /// Executes an action using a <see cref="TaskCompletionSource{TResult}"/>.  Exceptions will not be thrown directly, but will instead be reflected in <paramref name="tcs"/>.
-        /// </summary>
-        /// <param name="action">The action to run.</param>
-        /// <param name="tcs">The <see cref="TaskCompletionSource{TResult}"/> to record the results (or exception) in.</param>
-        internal void ExecuteActionWithTaskCompletionSource(Action action, TaskCompletionSource<bool> tcs)
-        {
-            // execute the action inline
-            ExecuteAction(() =>
-            {
-                try
-                {
-                    action();
-                    // run SetResult inside ExecuteAction so that continuations also run with this task scheduler
-                    tcs.SetResult(true);
-                }
-                catch (Exception ex)
-                {
-                    // run SetException inside ExecuteAction so that continuations also run with this task scheduler
-                    tcs.SetException(ex);
-                }
-            });
-        }
-
         private void ReportQueueMiss()
         {
             if (!Stopping)
@@ -917,121 +868,6 @@ namespace AmbientServices
             }).AsTask(), CancellationToken.None, TaskCreationOptions.None, this).Unwrap();
         }
         /// <summary>
-        /// Queues synchronous work to this scheduler, running continuations within the scheduler if workers are available, and running it inline (synchronously) if not.
-        /// </summary>
-        /// <param name="action">The action to run.</param>
-        /// <returns>A <see cref="Task"/> representing the work, no matter whether it was scheduled on a worker thread or run inline.</returns>
-        /// <remarks>Exceptions thrown from <paramref name="action"/> are placed into the returned <see cref="Task"/>.</remarks>
-        internal Task QueueWork(Action action)
-        {
-            if (action == null) throw new ArgumentNullException(nameof(action));
-
-            TaskCompletionSource<bool> tcs = new();
-            SchedulerInvocations?.Increment();
-            // try to get a ready thread
-            FifoWorker? worker = _readyWorkerList.Pop();
-            // no ready workers?
-            if (worker is null || Stopping)
-            {
-                ReportQueueMiss();
-                // execute the action inline
-                ExecuteActionWithTaskCompletionSource(action, tcs);
-                return tcs.Task;
-            }
-            else
-            {
-                Debug.Assert(!worker.IsBusy);
-            }
-            worker.Invoke(() => 
-            {
-                ExecuteActionWithTaskCompletionSource(action, tcs);
-            });
-            return tcs.Task;
-        }
-
-        /// <summary>
-        /// Queues asynchronous work to this scheduler, running everything within the scheduler if workers are available, and running inline, with continuations in the scheduler if not.
-        /// </summary>
-        /// <typeparam name="T">The type returned by the function.</typeparam>
-        /// <param name="func">The asynchronous function that does the work.</param>
-        internal Task<T> QueueWork<T>(Func<ValueTask<T>> func)
-        {
-            if (func == null) throw new ArgumentNullException(nameof(func));
-            TaskCompletionSource<T> tcs = new();
-            SchedulerInvocations?.Increment();
-            // try to get a ready thread
-            FifoWorker? worker = _readyWorkerList.Pop();
-            // no ready workers?
-            if (worker is null || Stopping)
-            {
-                ReportQueueMiss();
-                // execute the action "inline" (in this case, on the ambient task scheduler, but run continuations using the scheduler)
-                return ExecuteTask(func).AsTask();
-            }
-            else
-            {
-                Debug.Assert(!worker.IsBusy);
-            }
-            worker.Invoke(() =>
-            {
-                ExecuteAction(async () =>
-                {
-                    try
-                    {
-                        T ret = await func();
-                        // run SetResult inside ExecuteAction so that continuations also run with this task scheduler
-                        tcs.SetResult(ret);
-                    }
-                    catch (Exception ex)
-                    {
-                        tcs.SetException(ex);
-                    }
-                });
-            });
-            return tcs.Task;
-        }
-
-        /// <summary>
-        /// Queues asynchronous work to this scheduler, running everything within the scheduler if workers are available, and running inline, with continuations in the scheduler if not.
-        /// </summary>
-        /// <param name="func">The asynchronous function that does the work.</param>
-        internal Task QueueWork(Func<ValueTask> func)
-        {
-            if (func == null) throw new ArgumentNullException(nameof(func));
-            TaskCompletionSource<bool> tcs = new();
-            SchedulerInvocations?.Increment();
-            // try to get a ready thread
-            FifoWorker? worker = _readyWorkerList.Pop();
-            // no ready workers?
-            if (worker is null || Stopping)
-            {
-                ReportQueueMiss();
-                // execute the task "inline" (in this case, on the ambient task scheduler, but run continuations using the scheduler)
-                return ExecuteTask(func).AsTask();
-            }
-            else
-            {
-                Debug.Assert(!worker.IsBusy);
-            }
-            worker.Invoke(() =>
-            {
-                ExecuteAction(async () =>
-                {
-                    try
-                    {
-                        await func();
-                        // run SetResult inside ExecuteAction so that continuations also run with this task scheduler
-                        tcs.SetResult(true);
-                    }
-                    catch (Exception ex)
-                    {
-                        tcs.SetException(ex);
-                    }
-                });
-            });
-            return tcs.Task;
-        }
-        /// <summary>
         /// Runs a long-running function, running it entirely on a scheduler thread.
         /// </summary>
         /// <param name="func">The func to run on a scheduler thread.  The function may be async but should not be "async void" (use <see cref="Run(Action)"/> for those).  If async, this function returns a "wrapped" task.</param>
@@ -1061,7 +897,7 @@ namespace AmbientServices
                 Debug.Assert(!worker.IsBusy);
             }
 
-            worker.Invoke(() => ExecuteAction(() =>
+            worker.Invoke(() => 
             {
                 _ = Task.Factory.StartNew(() => 
                 {
@@ -1076,7 +912,7 @@ namespace AmbientServices
                         tcs.SetException(e);
                     }
                 }, CancellationToken.None, TaskCreationOptions.None, this);
-            }));
+            });
             return tcs.Task;
         }
         /// <summary>
@@ -1108,7 +944,7 @@ namespace AmbientServices
             {
                 Debug.Assert(!worker.IsBusy);
             }
-            worker.Invoke(() => ExecuteAction(() =>
+            worker.Invoke(() => 
             {
                 _ = Task.Factory.StartNew(() => 
                 {
@@ -1124,7 +960,7 @@ namespace AmbientServices
                         tcs.SetException(e);
                     }
                 }, CancellationToken.None, TaskCreationOptions.None, this);
-            }));
+            });
             return tcs.Task;
         }
         /// <summary>
@@ -1157,7 +993,7 @@ namespace AmbientServices
             }
             worker.Invoke(() =>
             {
-                ExecuteAction(() => _ = Task.Factory.StartNew(action, CancellationToken.None, TaskCreationOptions.None, this));
+                _ = Task.Factory.StartNew(action, CancellationToken.None, TaskCreationOptions.None, this);
             });
         }
         /// <summary>
@@ -1165,7 +1001,7 @@ namespace AmbientServices
         /// Everything up to the first await will run inline, but continuations will run in the context of the high performance FIFO task scheduler.
         /// </summary>
         /// <param name="action">The <see cref="Action"/> to run.</param>
-        private void ExecuteAction(Action action)
+        internal void ExecuteAction(Action action)
         {
             // we now have a worker that is busy
             Interlocked.Increment(ref _busyWorkers);
@@ -1177,7 +1013,7 @@ namespace AmbientServices
             }
             catch (Exception ex)
             {
-                RaiseUnobservedException(ex);
+                RaiseUnhandledException(ex);
             }
             finally
             {
@@ -1253,14 +1089,25 @@ namespace AmbientServices
         {
             if (task == null) throw new ArgumentNullException(nameof(task));
             if (_stopMasterThread != 0) throw new ObjectDisposedException(nameof(FifoTaskScheduler));
-            Task t = QueueWork(() =>
+            SchedulerInvocations?.Increment();
+            // try to get a ready thread
+            FifoWorker? worker = _readyWorkerList.Pop();
+            // no ready workers?
+            if (worker is null || Stopping)
             {
-                TryExecuteTask(task);
+                ReportQueueMiss();
+                // execute the action inline
+                TryExecuteTaskInline(task, false);
+                return;
+            }
+            else
+            {
+                Debug.Assert(!worker.IsBusy);
+            }
+            worker.Invoke(() => 
+            {
+                TryExecuteTask(task);                  // calling this system function takes care of unobserved task exceptions through the system event handler
             });
-            _ = t.ContinueWith(t => 
-            {
-                if (t.Exception != null) RaiseUnobservedException(t.Exception);
-            }, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, this);
         }
         /// <summary>
         /// Attempts to execute the specified task inline.
