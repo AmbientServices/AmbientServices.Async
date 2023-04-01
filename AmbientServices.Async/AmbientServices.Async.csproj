@@ -16,6 +16,7 @@
 		<Copyright>2010-2022</Copyright>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<PackageTags></PackageTags>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageOutputPath>\\192.168.13.99\Code\NuGet\</PackageOutputPath>
 		<PackageProjectUrl>https://github.com/AmbientServices/AmbientServices.Async</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/AmbientServices/AmbientServices.Async</RepositoryUrl>
@@ -31,10 +32,11 @@
 
 	<ItemGroup>
 		<None Include="..\.editorconfig" Link=".editorconfig" />
+		<None Include="..\README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="AmbientServices" Version="0.8.61" />
+		<PackageReference Include="AmbientServices" Version="0.8.64" />
 	</ItemGroup>
 
 </Project>
