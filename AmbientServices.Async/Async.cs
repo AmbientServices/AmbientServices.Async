@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace AmbientServices
 {
@@ -55,7 +56,11 @@ namespace AmbientServices
         /// <exception cref="ArgumentNullException">If <paramref name="ex"/> is null.</exception>
         public static void ConvertAggregateException(AggregateException ex)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(ex);
+#else
             if (ex == null) throw new ArgumentNullException(nameof(ex));
+#endif
             if (ex.InnerExceptions.Count < 2)
             {
                 System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(ex.InnerExceptions[0]).Throw();
@@ -134,7 +139,11 @@ namespace AmbientServices
         [DebuggerStepThrough]
         public static Task RunTask(Func<Task> a)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(a);
+#else
             if (a is null) throw new ArgumentNullException(nameof(a));
+#endif
             if (SynchronizationContext.Current == SynchronousSynchronizationContext.Default)
             {
                 RunTaskSync(a);
@@ -152,7 +161,11 @@ namespace AmbientServices
         [DebuggerStepThrough]
         public static Task<T> RunTask<T>(Func<Task<T>> a)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(a);
+#else
             if (a is null) throw new ArgumentNullException(nameof(a));
+#endif
             if (SynchronizationContext.Current == SynchronousSynchronizationContext.Default)
             {
                 T t = RunTaskSync(a);
@@ -170,7 +183,11 @@ namespace AmbientServices
         [DebuggerStepThrough]
         public static ValueTask Run(Func<ValueTask> a)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(a);
+#else
             if (a is null) throw new ArgumentNullException(nameof(a));
+#endif
             if (SynchronizationContext.Current == SynchronousSynchronizationContext.Default)
             {
                 RunSync(a);
@@ -188,7 +205,11 @@ namespace AmbientServices
         [DebuggerStepThrough]
         public static ValueTask<T> Run<T>(Func<ValueTask<T>> a)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(a);
+#else
             if (a is null) throw new ArgumentNullException(nameof(a));
+#endif
             if (SynchronizationContext.Current == SynchronousSynchronizationContext.Default)
             {
                 T t = RunSync(a);
@@ -339,7 +360,11 @@ namespace AmbientServices
         public static IEnumerable<T> AsyncEnumerableToEnumerable<T>(Func<IAsyncEnumerable<T>> funcAsyncEnumerable, CancellationToken cancel = default)
         {
 System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable");
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(funcAsyncEnumerable);
+#else
             if (funcAsyncEnumerable == null) throw new ArgumentNullException(nameof(funcAsyncEnumerable));
+#endif
 System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumerable not null");
             IAsyncEnumerator<T> asyncEnum = funcAsyncEnumerable().GetAsyncEnumerator(cancel);
             try
@@ -367,8 +392,16 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
         [DebuggerStepThrough]
         public static async ValueTask AwaitForEach<T>(IAsyncEnumerable<T> asyncEnumerable, Action<T> action, CancellationToken cancel = default)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(asyncEnumerable);
+#else
             if (asyncEnumerable == null) throw new ArgumentNullException(nameof(asyncEnumerable));
+#endif
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(action);
+#else
             if (action == null) throw new ArgumentNullException(nameof(action));
+#endif
             IAsyncEnumerator<T> e = asyncEnumerable.GetAsyncEnumerator(cancel);
             try
             {
@@ -392,8 +425,16 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
         [DebuggerStepThrough]
         public static async ValueTask AwaitForEach<T>(IAsyncEnumerable<T> asyncEnumerable, Func<T, CancellationToken, ValueTask> func, CancellationToken cancel = default)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(asyncEnumerable);
+#else
             if (asyncEnumerable == null) throw new ArgumentNullException(nameof(asyncEnumerable));
+#endif
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(func);
+#else
             if (func == null) throw new ArgumentNullException(nameof(func));
+#endif
             IAsyncEnumerator<T> e = asyncEnumerable.GetAsyncEnumerator(cancel);
             try
             {
@@ -406,11 +447,11 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
             finally { if (e != null) await Run(() => e.DisposeAsync()); }
         }
 #endif
-    }
-    /// <summary>
-    /// A static class to hold extensions to IEnumerable.
-    /// </summary>
-    public static class IEnumerableExtensions
+        }
+        /// <summary>
+        /// A static class to hold extensions to IEnumerable.
+        /// </summary>
+        public static class IEnumerableExtensions
     {
         /// <summary>
         /// Converts a single item to an enumerable.
@@ -432,7 +473,11 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
         /// <returns>An async enumerable with the elements from <paramref name="e"/> in it.</returns>
         public static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(this IEnumerable<T> e, [EnumeratorCancellation] CancellationToken cancel = default)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(e);
+#else
             if (e == null) throw new ArgumentNullException(nameof(e));
+#endif
             foreach (T t in e)
             {
                 cancel.ThrowIfCancellationRequested();
@@ -441,11 +486,11 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
             await Task.CompletedTask;
         }
 #endif
-    }
-    /// <summary>
-    /// A static class to hold extensions to IEnumerable.
-    /// </summary>
-    public static class IEnumeratorExtensions
+        }
+        /// <summary>
+        /// A static class to hold extensions to IEnumerable.
+        /// </summary>
+        public static class IEnumeratorExtensions
     {
 #if NETSTANDARD2_1 || NETCOREAPP3_1_OR_GREATER || NET5_0_OR_GREATER
         /// <summary>
@@ -457,7 +502,11 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
         /// <returns>An async enumerable with the elements from <paramref name="e"/> in it.</returns>
         public static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(this IEnumerator<T> e, [EnumeratorCancellation] CancellationToken cancel = default)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(e);
+#else
             if (e == null) throw new ArgumentNullException(nameof(e));
+#endif
             while (e.MoveNext())
             {
                 cancel.ThrowIfCancellationRequested();
@@ -483,7 +532,11 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
         /// <returns>A <see cref="List{T}"/> containing all the items in the async enumerator.</returns>
         public static async ValueTask<List<T>> ToListAsync<T>(this IAsyncEnumerable<T> ae, CancellationToken cancel = default)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(ae);
+#else
             if (ae == null) throw new ArgumentNullException(nameof(ae));
+#endif
             List<T> ret = new();
             await foreach (T t in ae)
             {
@@ -502,7 +555,11 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
         /// <returns>An array containing all the items in the async enumerator.</returns>
         public static async ValueTask<T[]> ToArrayAsync<T>(this IAsyncEnumerable<T> ae, CancellationToken cancel = default)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(ae);
+#else
             if (ae == null) throw new ArgumentNullException(nameof(ae));
+#endif
             List<T> ret = new();
             await foreach (T t in ae)
             {
@@ -552,7 +609,11 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
         /// <returns>A <see cref="List{T}"/> containing all the items in the async enumerator.</returns>
         public static async ValueTask<List<T>> ToListAsync<T>(this IAsyncEnumerator<T> ae, CancellationToken cancel = default)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(ae);
+#else
             if (ae == null) throw new ArgumentNullException(nameof(ae));
+#endif
             List<T> ret = new();
             while (await ae.MoveNextAsync())
             {
@@ -571,7 +632,11 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
         /// <returns>An array containing all the items in the async enumerator.</returns>
         public static async ValueTask<T[]> ToArrayAsync<T>(this IAsyncEnumerator<T> ae, CancellationToken cancel = default)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(ae);
+#else
             if (ae == null) throw new ArgumentNullException(nameof(ae));
+#endif
             List<T> ret = new();
             while (await ae.MoveNextAsync())
             {
@@ -595,9 +660,9 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
         }
     }
 #endif
-    /// <summary>
-    /// A <see cref="SynchronousTaskScheduler"/> that just runs each task immediately as it is queued.
-    /// </summary>
+            /// <summary>
+            /// A <see cref="SynchronousTaskScheduler"/> that just runs each task immediately as it is queued.
+            /// </summary>
     public sealed class SynchronousTaskScheduler : System.Threading.Tasks.TaskScheduler
     {
         private static readonly SynchronousTaskScheduler _Default = new();
@@ -667,7 +732,11 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
         /// <param name="state">The state to give to the post callback.</param>
         public override void Send(System.Threading.SendOrPostCallback d, object? state)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(d);
+#else
             if (d == null) throw new ArgumentNullException(nameof(d));
+#endif
             d(state);
         }
         /// <summary>
@@ -677,7 +746,11 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
         /// <param name="state">The state to give to the post callback.</param>
         public override void Post(System.Threading.SendOrPostCallback d, object? state)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(d);
+#else
             if (d == null) throw new ArgumentNullException(nameof(d));
+#endif
             d(state);
         }
         /// <summary>

@@ -848,7 +848,11 @@ namespace AmbientServices
         /// <param name="func">The asynchronous function that does the work.</param>
         public Task<T> TransferWork<T>(Func<ValueTask<T>> func)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(func);
+#else
             if (func == null) throw new ArgumentNullException(nameof(func));
+#endif
             return Task.Factory.StartNew(() => ExecuteTask(async () =>
             {
                 return await func();
@@ -861,7 +865,11 @@ namespace AmbientServices
         /// <param name="func">The asynchronous function that does the work.</param>
         public Task TransferWork(Func<ValueTask> func)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(func);
+#else
             if (func == null) throw new ArgumentNullException(nameof(func));
+#endif
             return Task.Factory.StartNew(() => ExecuteTask(async () =>
             {
                 await func();
@@ -875,8 +883,16 @@ namespace AmbientServices
         /// <remarks>Exceptions thrown from the function will be available to be observed through the returned <see cref="Task"/>.</remarks>
         public Task<T> Run<T>(Func<T> func)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(func);
+#else
             if (func == null) throw new ArgumentNullException(nameof(func));
+#endif
+#if NET7_0_OR_GREATER
+            ObjectDisposedException.ThrowIf(Stopping, this);
+#else
             if (Stopping) throw new ObjectDisposedException(nameof(FifoTaskScheduler));
+#endif
             TaskCompletionSource<T> tcs = new();
             SchedulerInvocations?.Increment();
             // try to get a ready thread
@@ -923,8 +939,16 @@ namespace AmbientServices
         /// <remarks>Exceptions thrown from the function will be available to be observed through the returned <see cref="Task"/>.</remarks>
         public Task Run(Action action)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(action);
+#else
             if (action == null) throw new ArgumentNullException(nameof(action));
+#endif
+#if NET7_0_OR_GREATER
+            ObjectDisposedException.ThrowIf(Stopping, this);
+#else
             if (Stopping) throw new ObjectDisposedException(nameof(FifoTaskScheduler));
+#endif
             TaskCompletionSource<bool> tcs = new();
             SchedulerInvocations?.Increment();
             // try to get a ready thread
@@ -971,8 +995,16 @@ namespace AmbientServices
         [SuppressMessage("Design", "CA1030:Use events where appropriate", Justification = "This should be obvious.  The prefix 'Fire' doesn't always imply something that should be an event!")]
         public void FireAndForget(Action action)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(action);
+#else
             if (action == null) throw new ArgumentNullException(nameof(action));
+#endif
+#if NET7_0_OR_GREATER
+            ObjectDisposedException.ThrowIf(Stopping, this);
+#else
             if (Stopping) throw new ObjectDisposedException(nameof(FifoTaskScheduler));
+#endif
             SchedulerInvocations?.Increment();
             // try to get a ready thread
             FifoWorker? worker = _readyWorkerList.Pop();
@@ -1087,8 +1119,16 @@ namespace AmbientServices
         /// <param name="task">The <see cref="Task"/> which is to be executed.</param>
         protected override void QueueTask(Task task)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(task);
+#else
             if (task == null) throw new ArgumentNullException(nameof(task));
+#endif
+#if NET7_0_OR_GREATER
+            ObjectDisposedException.ThrowIf(_stopMasterThread != 0, this);
+#else
             if (_stopMasterThread != 0) throw new ObjectDisposedException(nameof(FifoTaskScheduler));
+#endif
             SchedulerInvocations?.Increment();
             // try to get a ready thread
             FifoWorker? worker = _readyWorkerList.Pop();
@@ -1157,7 +1197,11 @@ namespace AmbientServices
         /// <remarks>The specified node must NOT already be in another stack and must not be simultaneously added or removed by another thread.</remarks>
         public void Push(TYPE node)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(node);
+#else
             if (node == null) throw new ArgumentNullException(nameof(node));
+#endif
             Validate();
             // already in another list?
             if (node.fNextNode != null)
