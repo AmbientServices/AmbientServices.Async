@@ -620,13 +620,6 @@ namespace AmbientServices.Test
             }, default));
             Async.RunTaskSync(async () =>
             {
-                foreach (int ret in await EnumerateAsync(10, default).ToListAsync())
-                {
-                    Assert.AreEqual(mainThreadId, Thread.CurrentThread.ManagedThreadId);
-                }
-            });
-            Async.RunTaskSync(async () =>
-            {
                 foreach (int ret in await EnumerateAsync(10, default).GetAsyncEnumerator().ToListAsync())
                 {
                     Assert.AreEqual(mainThreadId, Thread.CurrentThread.ManagedThreadId);
@@ -634,21 +627,7 @@ namespace AmbientServices.Test
             });
             Async.RunTaskSync(async () =>
             {
-                foreach (int ret in await EnumerateAsync(10, default).ToArrayAsync())
-                {
-                    Assert.AreEqual(mainThreadId, Thread.CurrentThread.ManagedThreadId);
-                }
-            });
-            Async.RunTaskSync(async () =>
-            {
                 foreach (int ret in await EnumerateAsync(10, default).GetAsyncEnumerator().ToArrayAsync())
-                {
-                    Assert.AreEqual(mainThreadId, Thread.CurrentThread.ManagedThreadId);
-                }
-            });
-            Async.RunTaskSync(async () =>
-            {
-                foreach (int ret in await EnumerateAsync(10, default).ToEnumerableAsync())
                 {
                     Assert.AreEqual(mainThreadId, Thread.CurrentThread.ManagedThreadId);
                 }
@@ -729,11 +708,6 @@ namespace AmbientServices.Test
             }, default));
             Assert.AreEqual(limit - 1, max);
             max = 0;
-            foreach (int ret in await EnumerateAsync(limit, default).ToListAsync())
-            {
-                max = Math.Max(max, ret);
-            }
-            Assert.AreEqual(limit - 1, max);
             max = 0;
             foreach (int ret in await EnumerateAsync(limit, default).GetAsyncEnumerator().ToListAsync())
             {
@@ -741,19 +715,7 @@ namespace AmbientServices.Test
             }
             Assert.AreEqual(limit - 1, max);
             max = 0;
-            foreach (int ret in await EnumerateAsync(limit, default).ToArrayAsync())
-            {
-                max = Math.Max(max, ret);
-            }
-            Assert.AreEqual(limit - 1, max);
-            max = 0;
             foreach (int ret in await EnumerateAsync(limit, default).GetAsyncEnumerator().ToArrayAsync())
-            {
-                max = Math.Max(max, ret);
-            }
-            Assert.AreEqual(limit - 1, max);
-            max = 0;
-            foreach (int ret in await EnumerateAsync(limit, default).ToEnumerableAsync())
             {
                 max = Math.Max(max, ret);
             }
@@ -788,13 +750,6 @@ namespace AmbientServices.Test
         public async Task Async_AsyncEnumeratorExceptions()
         {
             int mainThreadId = Thread.CurrentThread.ManagedThreadId;
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(async () =>
-            {
-                foreach (int ret in await NullAsyncEnumerable().ToListAsync())
-                {
-                    Assert.AreEqual(mainThreadId, Thread.CurrentThread.ManagedThreadId);
-                }
-            });
             await Assert.ThrowsExceptionAsync<ArgumentNullException>(async () =>
             {
                 await foreach (int ret in ((int[])null!).ToAsyncEnumerable())
@@ -861,7 +816,6 @@ namespace AmbientServices.Test
             await Assert.ThrowsExceptionAsync<ArgumentNullException>(async () => await Async.AwaitForEach<int>(1.ToSingleItemAsyncEnumerable(), (Action<int>)null!));
             await Assert.ThrowsExceptionAsync<ArgumentNullException>(async () => await Async.AwaitForEach<int>(null!, (i, c) => new ValueTask()));
             await Assert.ThrowsExceptionAsync<ArgumentNullException>(async () => await Async.AwaitForEach<int>(1.ToSingleItemAsyncEnumerable(), null!));
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(async () => await ((IAsyncEnumerable<int>)null!).ToArrayAsync());
         }
 #endif
         [TestMethod]

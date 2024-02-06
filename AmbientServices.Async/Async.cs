@@ -523,65 +523,6 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
     public static class IAsyncEnumerableExtensions
     {
         /// <summary>
-        /// Asynchronously converts an <see cref="IAsyncEnumerator{T}"/> into a list.
-        /// Note that since it returns a list, this function does NOT work with inifinite (or even very large) enumerations.
-        /// </summary>
-        /// <typeparam name="T">The type within the list.</typeparam>
-        /// <param name="ae">The <see cref="IAsyncEnumerator{T}"/>.</param>
-        /// <param name="cancel">A <see cref="CancellationToken"/> the caller can use to cancel the operation before it completes.</param>
-        /// <returns>A <see cref="List{T}"/> containing all the items in the async enumerator.</returns>
-        public static async ValueTask<List<T>> ToListAsync<T>(this IAsyncEnumerable<T> ae, CancellationToken cancel = default)
-        {
-#if NET6_0_OR_GREATER
-            ArgumentNullException.ThrowIfNull(ae);
-#else
-            if (ae == null) throw new ArgumentNullException(nameof(ae));
-#endif
-            List<T> ret = new();
-            await foreach (T t in ae)
-            {
-                cancel.ThrowIfCancellationRequested();
-                ret.Add(t);
-            }
-            return ret;
-        }
-        /// <summary>
-        /// Asynchronously converts an <see cref="IAsyncEnumerable{T}"/> into an array.
-        /// Note that since it returns a array, this function does NOT work with inifinite (or even very large) enumerations.
-        /// </summary>
-        /// <typeparam name="T">The type within the list.</typeparam>
-        /// <param name="ae">The <see cref="IAsyncEnumerable{T}"/>.</param>
-        /// <param name="cancel">A <see cref="CancellationToken"/> the caller can use to cancel the operation before it completes.</param>
-        /// <returns>An array containing all the items in the async enumerator.</returns>
-        public static async ValueTask<T[]> ToArrayAsync<T>(this IAsyncEnumerable<T> ae, CancellationToken cancel = default)
-        {
-#if NET6_0_OR_GREATER
-            ArgumentNullException.ThrowIfNull(ae);
-#else
-            if (ae == null) throw new ArgumentNullException(nameof(ae));
-#endif
-            List<T> ret = new();
-            await foreach (T t in ae)
-            {
-                cancel.ThrowIfCancellationRequested();
-                ret.Add(t);
-            }
-            return ret.ToArray();
-        }
-        /// <summary>
-        /// Asynchronously converts an <see cref="IAsyncEnumerable{T}"/> into an <see cref="IEnumerable{T}"/>.
-        /// Note that since it returns a array, this function does NOT work with inifinite (or even very large) enumerations.
-        /// </summary>
-        /// <typeparam name="T">The type within the list.</typeparam>
-        /// <param name="ae">The <see cref="IAsyncEnumerable{T}"/>.</param>
-        /// <param name="cancel">A <see cref="CancellationToken"/> the caller can use to cancel the operation before it completes.</param>
-        /// <returns>An enumeration of all the items in the async enumerator.</returns>
-        public static async ValueTask<IEnumerable<T>> ToEnumerableAsync<T>(this IAsyncEnumerable<T> ae, CancellationToken cancel = default)
-        {
-            // there may be a more efficient way to do this, but I haven't been able to find it
-            return await Async.Run(() => ToListAsync<T>(ae, cancel));
-        }
-        /// <summary>
         /// Converts a single item to an enumerable.
         /// </summary>
         /// <typeparam name="T">The type for the item.</typeparam>
@@ -595,7 +536,7 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
         }
     }
     /// <summary>
-    /// A static class to hold extensions to IAsyncEnumerable.
+    /// A static class to hold extensions to IAsyncEnumerator.
     /// </summary>
     public static class IAsyncEnumeratorExtensions
     {
@@ -660,9 +601,9 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
         }
     }
 #endif
-            /// <summary>
-            /// A <see cref="SynchronousTaskScheduler"/> that just runs each task immediately as it is queued.
-            /// </summary>
+    /// <summary>
+    /// A <see cref="SynchronousTaskScheduler"/> that just runs each task immediately as it is queued.
+    /// </summary>
     public sealed class SynchronousTaskScheduler : System.Threading.Tasks.TaskScheduler
     {
         private static readonly SynchronousTaskScheduler _Default = new();
