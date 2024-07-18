@@ -352,12 +352,12 @@ namespace AmbientServices
         private static readonly CpuMonitor CpuMonitor = new(1000);
         private static readonly ConcurrentHashSet<FifoTaskScheduler> Schedulers = new();
 
-        private const float MaxCpuUsage = 0.995f;
+        private const float MaxCpuUsage = 0.97f;
 #if DEBUG
         private const int BufferThreadCount = 2;
         private static readonly int RetireCheckAfterCreationTickCount = (int)TimeSpan.FromSeconds(60).Ticks;
         private static readonly int RetireCheckFastestRetirementFrequencyTickCount = (int)TimeSpan.FromSeconds(3).Ticks;
-        private const int MaxThreadsPerLogicalCpu = 50;
+        private const int MaxThreadsPerLogicalCpu = 5;
 
         private readonly bool _executeDisposalCheck;
 #else
@@ -365,7 +365,7 @@ namespace AmbientServices
         private readonly static int BufferThreadCount = LogicalCpuCount * BufferThreadsPerCpu;
         private static readonly int RetireCheckAfterCreationTickCount = (int)TimeSpan.FromMinutes(5).Ticks;
         private static readonly int RetireCheckFastestRetirementFrequencyTickCount = (int)TimeSpan.FromSeconds(60).Ticks;
-        private const int MaxThreadsPerLogicalCpu = 150;
+        private const int MaxThreadsPerLogicalCpu = 50;
 #endif
 
         // initialize this here to be sure all the above values have been set (it uses many of them)
@@ -402,7 +402,7 @@ namespace AmbientServices
         private int _workerId;                                          // an incrementing worker id used to name the worker threads
         private int _busyWorkers;                                       // the number of busy workers (interlocked)
         private int _workers;                                           // the total number of workers
-        private long _peakConcurrentUsageSinceLastRetirementCheck;      // the peak concurrent usage since the last change in worker count
+        private long _peakConcurrentUsageSinceLastRetirementCheck;      // the peak concurrent usage since the last reduction in worker count
         private long _workersHighWaterMark;                             // the most workers we've ever seen (interlocked)
         private int _highThreadsWarningTickCount;                       // the last time we warned about too many threads (interlocked)
         private int _lastInlineExecutionTicks;                          // the last time we had to execute something inline because no workers were available (interlocked)
@@ -739,7 +739,7 @@ namespace AmbientServices
                                     // race to log a warning--did we win the race?
                                     if (Interlocked.CompareExchange(ref _highThreadsWarningTickCount, now, lastWarning) == lastWarning)
                                     {
-                                        Logger.Log($"'{_schedulerName}': {readyWorkers + busyWorkers} threads exceeds the limit of {_maxWorkerThreads} for this scheduler!", "Busy", AmbientLogLevel.Warning);
+                                        Logger.Log($"'{_schedulerName}': {readyWorkers + busyWorkers} threads exceeds the limit of {_maxWorkerThreads} for this scheduler, or the CPU usage is over the max!", "Busy", AmbientLogLevel.Warning);
                                     }
                                 }
                                 // now we will just carry on because we will not expand beyond the number of threads we have now
@@ -1136,6 +1136,8 @@ namespace AmbientServices
             if (worker is null || Stopping)
             {
                 ReportQueueMiss();
+                // if the CPU is above the max, let's slow things down here by just sleeping for a bit
+                if (CpuMonitor.RecentUsage > MaxCpuUsage) Thread.Sleep(10);
                 // execute the action inline
                 TryExecuteTaskInline(task, false);
                 return;
