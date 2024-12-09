@@ -6,7 +6,7 @@ The static Async class provides a way to make code async-ready little by little 
 
 First, let's get one of my pet peeves out of the way. 
 Async in C# is a misnomer, and await in C# has a bad syntax.
-There is *nothing* asynchronous about C#'s async/await it unless by asynchronous you really mean "on another thread."
+There is *nothing* asynchronous about C#'s async/await unless by asynchronous you really mean "on another thread."
 Linguistically, the word asynchronous implies the code is running "out of sync," ie. simultaneous to other code.
 In the early days of multithreaded programming, running code on another thread and running it at the same time as the code that initiated its execution were synonymous--after all, why would you run code on another thread if the execution flow was just switching from one thread to another?
 However, C# async/await code does *not* usually alter the timing or flow of the code to run at the same time as the code that invokes it, it only *possibly* runs it on another thread, and it does so for the purposes of using the initial thread for something else while an IO operation or instruction to delay execution rather than to run it simultaneous with other code.
