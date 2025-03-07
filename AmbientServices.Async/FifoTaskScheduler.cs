@@ -1,19 +1,10 @@
-﻿using AmbientServices;
-using AmbientServices.Utilities;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
+﻿using AmbientServices.Utilities;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
+#if NET5_0_OR_GREATER
 using System.Runtime.Versioning;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using static System.Collections.Specialized.BitVector32;
-
+#endif
 namespace AmbientServices
 {
     /// <summary>
@@ -174,7 +165,7 @@ namespace AmbientServices
         private void Start()
         {
             _thread.Start();
-            _scheduler.SchedulerWorkersCreated?.Increment();
+            _scheduler.SchedulerWorkersCreated?.IncrementRaw();
         }
 #if DEBUG
         private readonly string fStackAtConstruction = new StackTrace().ToString();
@@ -234,8 +225,8 @@ namespace AmbientServices
             // mark for stopping
             Interlocked.Exchange(ref _stop, 1);
             // worker has retired!
-            _scheduler.SchedulerWorkersRetired?.Increment();
-            FifoTaskScheduler.Logger.Log(AmbientClock.UtcNow.ToShortTimeString() + ": Retiring worker: " + _id, "StartStop", AmbientLogLevel.Debug);
+            _scheduler.SchedulerWorkersRetired?.IncrementRaw();
+            FifoTaskScheduler.Logger.Filter("StartStop", AmbientLogLevel.Debug)?.Log(new { Action = "RetireWorker", WorkerId = _id });
             // wake thread so it can exit gracefully
             _wakeThread.Set();
             // tell the thread it can dispose and exit
@@ -254,10 +245,10 @@ namespace AmbientServices
             try
             {
                 long maxInvokeTicks = 0;
-                _scheduler.SchedulerWorkers?.Increment();
+                _scheduler.SchedulerWorkers?.IncrementRaw();
                 try
                 {
-                    FifoTaskScheduler.Logger.Log("Starting " + _id, "ThreadStartStop", AmbientLogLevel.Debug);
+                    FifoTaskScheduler.Logger.Filter("ThreadStartStop", AmbientLogLevel.Debug)?.Log(new { Action = "StartWorker", WorkerId = _id });
                     long startTicks = FifoTaskScheduler.Ticks;
                     long completionTicks = startTicks;
                     // loop until we're told to stop
@@ -282,7 +273,7 @@ namespace AmbientServices
                         }
                         else
                         {
-                            _scheduler.SchedulerBusyWorkers?.Increment();
+                            _scheduler.SchedulerBusyWorkers?.IncrementRaw();
                             try
                             {
                                 // perform the work (handling any uncaught exception)
@@ -290,7 +281,7 @@ namespace AmbientServices
                             }
                             finally
                             {
-                                _scheduler.SchedulerBusyWorkers?.Decrement();
+                                _scheduler.SchedulerBusyWorkers?.DecrementRaw();
                                 // mark the time
                                 completionTicks = FifoTaskScheduler.Ticks;
                             }
@@ -316,14 +307,14 @@ namespace AmbientServices
                                 InterlockedUtilities.TryOptomisticMax(ref _SlowestInvocation, invokeTicks);
                                 _scheduler.SchedulerSlowestInvocationMilliseconds?.SetValue(_SlowestInvocation * 1000 / FifoTaskScheduler.TicksPerSecond);
                             }
-                            _scheduler.SchedulerInvocationTime?.Add(invokeTicks);
+                            _scheduler.SchedulerInvocationTime?.AddRaw(invokeTicks);
                         }
                     }
-                    FifoTaskScheduler.Logger.Log($"Exiting '{_id}' worker thread: max invocation wait={maxInvokeTicks * 1000.0f / FifoTaskScheduler.TicksPerSecond}ms", "ThreadStartStop", AmbientLogLevel.Debug);
+                    FifoTaskScheduler.Logger.Filter("ThreadStartStop", AmbientLogLevel.Debug)?.Log(new { Action = "ExitWorker", WorkerId = _id, MaxInvocatoinWaitMs = maxInvokeTicks * 1000.0f / FifoTaskScheduler.TicksPerSecond, });
                 }
                 finally
                 {
-                    _scheduler.SchedulerWorkers?.Decrement();
+                    _scheduler.SchedulerWorkers?.DecrementRaw();
                 }
             }
             finally
@@ -554,15 +545,15 @@ namespace AmbientServices
             _testMode = testMode;
             _lastResetTime = _lastScaleDownTime = _lastScaleUpTime = AmbientClock.UtcNow.AddSeconds(-1).Ticks;
 
-            SchedulerInvocations = _statistics?.GetOrAddStatistic(false, $"{nameof(SchedulerInvocations)}:{schedulerName}", "The total number of scheduler invocations");
-            SchedulerInvocationTime = _statistics?.GetOrAddStatistic(true, $"{nameof(SchedulerInvocationTime)}:{schedulerName}", "The total number of ticks spent doing invocations");
-            SchedulerWorkersCreated = _statistics?.GetOrAddStatistic(false, $"{nameof(SchedulerWorkersCreated)}:{schedulerName}", "The total number of scheduler workers created");
-            SchedulerWorkersRetired = _statistics?.GetOrAddStatistic(false, $"{nameof(SchedulerWorkersRetired)}:{schedulerName}", "The total number of scheduler workers retired");
-            SchedulerInlineExecutions = _statistics?.GetOrAddStatistic(false, $"{nameof(SchedulerInlineExecutions)}:{schedulerName}", "The total number of scheduler inline executions");
-            SchedulerWorkers = _statistics?.GetOrAddStatistic(false, $"{nameof(SchedulerWorkers)}:{schedulerName}", "The current number of scheduler workers");
-            SchedulerBusyWorkers = _statistics?.GetOrAddStatistic(false, $"{nameof(SchedulerBusyWorkers)}:{schedulerName}", "The current number of busy scheduler workers");
-            SchedulerWorkersHighWaterMark = _statistics?.GetOrAddStatistic(false, $"{nameof(SchedulerWorkersHighWaterMark)}:{schedulerName}", "The highest number of scheduler workers");
-            SchedulerSlowestInvocationMilliseconds = _statistics?.GetOrAddStatistic(false, $"{nameof(SchedulerSlowestInvocationMilliseconds)}:{schedulerName}", "The highest number of milliseconds required for an invocation");
+            SchedulerInvocations = _statistics?.GetOrAddStatistic(AmbientStatisicType.Cumulative, $"{nameof(SchedulerInvocations)}:{schedulerName}", $"{nameof(SchedulerInvocations)}:{schedulerName}", "The total number of scheduler invocations");
+            SchedulerInvocationTime = _statistics?.GetOrAddTimeBasedStatistic(AmbientStatisicType.Cumulative, $"{nameof(SchedulerInvocationTime)}:{schedulerName}", $"{nameof(SchedulerInvocationTime)}:{schedulerName}", "The total number of ticks spent doing invocations");
+            SchedulerWorkersCreated = _statistics?.GetOrAddStatistic(AmbientStatisicType.Cumulative, $"{nameof(SchedulerWorkersCreated)}:{schedulerName}", $"{nameof(SchedulerWorkersCreated)}:{schedulerName}", "The total number of scheduler workers created");
+            SchedulerWorkersRetired = _statistics?.GetOrAddStatistic(AmbientStatisicType.Cumulative, $"{nameof(SchedulerWorkersRetired)}:{schedulerName}", $"{nameof(SchedulerWorkersRetired)}:{schedulerName}", "The total number of scheduler workers retired");
+            SchedulerInlineExecutions = _statistics?.GetOrAddStatistic(AmbientStatisicType.Cumulative, $"{nameof(SchedulerInlineExecutions)}:{schedulerName}", $"{nameof(SchedulerInlineExecutions)}:{schedulerName}", "The total number of scheduler inline executions");
+            SchedulerWorkers = _statistics?.GetOrAddStatistic(AmbientStatisicType.Raw, $"{nameof(SchedulerWorkers)}:{schedulerName}", $"{nameof(SchedulerWorkers)}:{schedulerName}", "The current number of scheduler workers");
+            SchedulerBusyWorkers = _statistics?.GetOrAddStatistic(AmbientStatisicType.Raw, $"{nameof(SchedulerBusyWorkers)}:{schedulerName}", $"{nameof(SchedulerBusyWorkers)}:{schedulerName}", "The current number of busy scheduler workers");
+            SchedulerWorkersHighWaterMark = _statistics?.GetOrAddStatistic(AmbientStatisicType.Max, $"{nameof(SchedulerWorkersHighWaterMark)}:{schedulerName}", $"{nameof(SchedulerWorkersHighWaterMark)}:{schedulerName}", "The highest number of scheduler workers");
+            SchedulerSlowestInvocationMilliseconds = _statistics?.GetOrAddStatistic(AmbientStatisicType.Max, $"{nameof(SchedulerSlowestInvocationMilliseconds)}:{schedulerName}", $"{nameof(SchedulerSlowestInvocationMilliseconds)}:{schedulerName}", "The highest number of milliseconds required for an invocation");
 
             _schedulerMasterThread = new(new ThreadStart(SchedulerMaster)) {
                 Name = "High Performance FIFO Shceduler '" + schedulerName + "' Master",
@@ -719,7 +710,7 @@ namespace AmbientServices
                                 }
                             }
                             Interlocked.Exchange(ref _reset, 0);
-                            FifoTaskScheduler.Logger.Log($"{_schedulerName} workers:{_workers}", "Reset", AmbientLogLevel.Debug);
+                            FifoTaskScheduler.Logger.Filter("Reset", AmbientLogLevel.Debug)?.Log( new { Action = "Reset", SchedulerName = _schedulerName });
                             // record that we retired threads just now
                             lastRetirementTicks = Environment.TickCount;
                             // record that we just finished a reset
@@ -739,7 +730,7 @@ namespace AmbientServices
                                     // race to log a warning--did we win the race?
                                     if (Interlocked.CompareExchange(ref _highThreadsWarningTickCount, now, lastWarning) == lastWarning)
                                     {
-                                        Logger.Log($"'{_schedulerName}': {readyWorkers + busyWorkers} threads exceeds the limit of {_maxWorkerThreads} for this scheduler, or the CPU usage is over the max!", "Busy", AmbientLogLevel.Warning);
+                                        Logger.Filter("Busy", AmbientLogLevel.Warning)?.Log(new { Action = "WorkerBusy", SchedulerName = _schedulerName, ReadyWorkers = readyWorkers, BusyWorkers = busyWorkers, MaxThreadWorkers = _maxWorkerThreads });
                                     }
                                 }
                                 // now we will just carry on because we will not expand beyond the number of threads we have now
@@ -755,7 +746,7 @@ namespace AmbientServices
                                     Debug.Assert(!worker.IsBusy);
                                     _readyWorkerList.Push(worker);
                                 }
-                                FifoTaskScheduler.Logger.Log($"{_schedulerName} workers:{_workers}", "Scale", AmbientLogLevel.Debug);
+                                FifoTaskScheduler.Logger.Filter("Scale", AmbientLogLevel.Debug)?.Log(new { Action = "ScaleUp", SchedulerName = _schedulerName, Workers = _workers });
                                 // record the expansion time so we don't retire anything for at least a minute
                                 lastCreationTicks = Environment.TickCount;
                                 // record that we just finished a scale up
@@ -778,7 +769,7 @@ namespace AmbientServices
                                 {
                                     // retire one worker
                                     RetireOneWorker();
-                                    FifoTaskScheduler.Logger.Log($"{_schedulerName} workers:{_workers}", "Scale", AmbientLogLevel.Debug);
+                                    FifoTaskScheduler.Logger.Filter("Scale", AmbientLogLevel.Debug)?.Log(new { Action = "ScaleDown", SchedulerName = _schedulerName, Workers = _workers });
                                     // record that we retired threads just now
                                     lastRetirementTicks = Environment.TickCount;
                                 }
@@ -800,8 +791,8 @@ namespace AmbientServices
             }
             catch (Exception ex)
             {
-                if (ex is ThreadAbortException || ex is TaskCanceledException) Logger.Log($"'{_schedulerName}' Exception: {ex}", "AsyncException", AmbientLogLevel.Debug);
-                else Logger.Log($"'{_schedulerName}' Critical Exception: {ex}", "AsyncException", AmbientLogLevel.Error);
+                if (ex is ThreadAbortException || ex is TaskCanceledException) Logger.Filter("AsyncException", AmbientLogLevel.Debug)?.Log(new { Action = "AsyncException", SchedulerName = _schedulerName }, ex);
+                else Logger.Filter("AsyncException", AmbientLogLevel.Error)?.Log(new { Action = "CriticalException", SchedulerName = _schedulerName }, ex);
             }
         }
 
@@ -832,12 +823,12 @@ namespace AmbientServices
             {
                 // record this miss
                 Interlocked.Exchange(ref _lastInlineExecutionTicks, Environment.TickCount);
-                SchedulerInlineExecutions?.Increment();
+                SchedulerInlineExecutions?.IncrementRaw();
                 // notify any subscribers of the miss
                 TaskInlined?.Invoke(this, new TaskInlinedEventArgs());
                 // wake the master thread so it will add more threads ASAP
                 _wakeSchedulerMasterThread.Set();
-                Logger.Log($"'{_schedulerName}': no available workers--invoking inline.", "Busy", AmbientLogLevel.Warning);
+                Logger.Filter("Busy", AmbientLogLevel.Warning)?.Log(new { Action = "NoAvailableWorkers", SchedulerName = _schedulerName, Invocation = "Inline" });
             }
         }
 
@@ -894,7 +885,7 @@ namespace AmbientServices
             if (Stopping) throw new ObjectDisposedException(nameof(FifoTaskScheduler));
 #endif
             TaskCompletionSource<T> tcs = new();
-            SchedulerInvocations?.Increment();
+            SchedulerInvocations?.IncrementRaw();
             // try to get a ready thread
             FifoWorker? worker = _readyWorkerList.Pop();
             // no ready workers?
@@ -950,7 +941,7 @@ namespace AmbientServices
             if (Stopping) throw new ObjectDisposedException(nameof(FifoTaskScheduler));
 #endif
             TaskCompletionSource<bool> tcs = new();
-            SchedulerInvocations?.Increment();
+            SchedulerInvocations?.IncrementRaw();
             // try to get a ready thread
             FifoWorker? worker = _readyWorkerList.Pop();
             // no ready workers?
@@ -1005,7 +996,7 @@ namespace AmbientServices
 #else
             if (Stopping) throw new ObjectDisposedException(nameof(FifoTaskScheduler));
 #endif
-            SchedulerInvocations?.Increment();
+            SchedulerInvocations?.IncrementRaw();
             // try to get a ready thread
             FifoWorker? worker = _readyWorkerList.Pop();
             // no ready workers?
@@ -1129,7 +1120,7 @@ namespace AmbientServices
 #else
             if (_stopMasterThread != 0) throw new ObjectDisposedException(nameof(FifoTaskScheduler));
 #endif
-            SchedulerInvocations?.Increment();
+            SchedulerInvocations?.IncrementRaw();
             // try to get a ready thread
             FifoWorker? worker = _readyWorkerList.Pop();
             // no ready workers?
