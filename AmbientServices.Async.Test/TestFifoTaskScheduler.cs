@@ -222,8 +222,8 @@ namespace AmbientServices.Test
             MockCpuUsage mockCpu = new();
             using IDisposable d = MockCpu.ScopedLocalOverride(mockCpu);
             using FifoTaskScheduler scheduler = FifoTaskScheduler.Start(nameof(TooManyWorkers), 1, 2, 10);
-            Assert.IsTrue(scheduler.ReadyWorkers > 0);
-            Assert.IsTrue(scheduler.BusyWorkers == 0);
+            Assert.IsGreaterThan(0, scheduler.ReadyWorkers);
+            Assert.AreEqual(0, scheduler.BusyWorkers);
             FifoTaskFactory factory = new(scheduler);
             List<Task> tasks = new();
             // the scheduler should think the CPU is very high, so it should enter the crazy usage notify
@@ -298,11 +298,11 @@ namespace AmbientServices.Test
             }
             Assert.IsTrue(scheduler.LastScaleDown > lastScaleDown, $"No scale down, {scheduler.LastScaleDown} vs {lastScaleDown} vs {DateTime.UtcNow} i={i}, threads={scheduler.Workers}, readyworkers={scheduler.ReadyWorkers}, busyworkers={scheduler.BusyWorkers}");
         }
-        [TestMethod, ExpectedException(typeof(ExpectedException))]
+        [TestMethod]
         public async Task StartNewException()
         {
             //using IDisposable d = LoggerBackend.ScopedLocalOverride(new AmbientTraceLogger());
-            await FifoTaskFactory.Default.StartNew(() => ThrowExpectedException());
+            await Assert.ThrowsExactlyAsync<ExpectedException>(async () => await FifoTaskFactory.Default.StartNew(() => ThrowExpectedException()));
         }
         [TestMethod]
         public void DisposedException()
@@ -312,7 +312,7 @@ namespace AmbientServices.Test
             {
                 test = new(testScheduler);
             }
-            Assert.ThrowsException<TaskSchedulerException>(() => test.StartNew(() => { }));     // our code throws an ObjectDisposedException but TaskScheduler converts it
+            Assert.Throws<TaskSchedulerException>(() => test.StartNew(() => { }));     // our code throws an ObjectDisposedException but TaskScheduler converts it
         }
 
         [TestMethod]        // Note that this test will fail when run in isolation, possibly because the garbage collection can't be forced to collect the task, or the debugger holds on to the task?
@@ -333,8 +333,8 @@ namespace AmbientServices.Test
                     GC.Collect(2, GCCollectionMode.Forced, true, true);
                     GC.WaitForPendingFinalizers();
                 }
-                Assert.IsTrue(tracker.UnhandledExceptions >= 1);
-                Assert.IsTrue(tracker.TaskSchedulerCount >= 1);
+                Assert.IsGreaterThanOrEqualTo(1, tracker.UnhandledExceptions);
+                Assert.IsGreaterThanOrEqualTo(1, tracker.TaskSchedulerCount);
             }
             finally
             {
@@ -410,25 +410,25 @@ namespace AmbientServices.Test
         [TestMethod]
         public async Task InvokeException()
         {
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => FifoTaskScheduler.Default.Run<int>(null!));
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => FifoTaskScheduler.Default.TransferWork((Func<ValueTask>?)null!));
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => FifoTaskScheduler.Default.TransferWork((Func<ValueTask<int>>?)null!));
-            Assert.ThrowsException<ArgumentNullException>(() => FifoTaskScheduler.Default.Run(null!));
-            Assert.ThrowsException<ArgumentNullException>(() => FifoTaskScheduler.Default.FireAndForget(null!));
-            await Assert.ThrowsExceptionAsync<ExpectedException>(() => FifoTaskScheduler.Default.Run<int>(() => throw new ExpectedException()));
-            await Assert.ThrowsExceptionAsync<ExpectedException>(() => FifoTaskScheduler.Default.Run(() => throw new ExpectedException()));
+            await Assert.ThrowsExactlyAsync<ArgumentNullException>(() => FifoTaskScheduler.Default.Run<int>(null!));
+            await Assert.ThrowsExactlyAsync<ArgumentNullException>(() => FifoTaskScheduler.Default.TransferWork((Func<ValueTask>?)null!));
+            await Assert.ThrowsExactlyAsync<ArgumentNullException>(() => FifoTaskScheduler.Default.TransferWork((Func<ValueTask<int>>?)null!));
+            Assert.ThrowsExactly<ArgumentNullException>(() => FifoTaskScheduler.Default.Run(null!));
+            Assert.ThrowsExactly<ArgumentNullException>(() => FifoTaskScheduler.Default.FireAndForget(null!));
+            await Assert.ThrowsExactlyAsync<ExpectedException>(() => FifoTaskScheduler.Default.Run<int>(() => throw new ExpectedException()));
+            await Assert.ThrowsExactlyAsync<ExpectedException>(() => FifoTaskScheduler.Default.Run(() => throw new ExpectedException()));
         }
         [TestMethod]
         public void QueueTaskExceptions()
         {
-            Assert.ThrowsException<ArgumentNullException>(() => FifoTaskScheduler.Default.QueueTaskDirect(null!));
+            Assert.ThrowsExactly<ArgumentNullException>(() => FifoTaskScheduler.Default.QueueTaskDirect(null!));
         }
         [TestMethod]
         public void Properties()
         {
-            Assert.IsTrue(FifoTaskScheduler.Default.Workers >= 0);
-            Assert.IsTrue(FifoTaskScheduler.Default.BusyWorkers >= 0);
-            Assert.IsTrue(FifoTaskScheduler.Default.MaximumConcurrencyLevel >= Environment.ProcessorCount);
+            Assert.IsGreaterThanOrEqualTo(0, FifoTaskScheduler.Default.Workers);
+            Assert.IsGreaterThanOrEqualTo(0, FifoTaskScheduler.Default.BusyWorkers);
+            Assert.IsGreaterThanOrEqualTo(Environment.ProcessorCount, FifoTaskScheduler.Default.MaximumConcurrencyLevel);
         }
         [TestMethod]
         public void IntrusiveSinglyLinkedList()
@@ -437,8 +437,8 @@ namespace AmbientServices.Test
             InterlockedSinglyLinkedList<NodeTest> list2 = new();
             NodeTest node = new() { Value = 1 };
             list1.Push(node);
-            Assert.ThrowsException<ArgumentNullException>(() => list2.Push(null!));
-            Assert.ThrowsException<InvalidOperationException>(() => list2.Push(node));
+            Assert.ThrowsExactly<ArgumentNullException>(() => list2.Push(null!));
+            Assert.ThrowsExactly<InvalidOperationException>(() => list2.Push(node));
             list1.Validate();
             Assert.AreEqual(1, list1.Count);
             list1.Clear();
@@ -461,21 +461,21 @@ namespace AmbientServices.Test
                 FifoWorker worker = FifoWorker.Start(scheduler, "1", ThreadPriority.Normal);  // the worker disposes of itself
                 worker.Invoke(LongWait);
                 Assert.IsTrue(worker.IsBusy);
-                Assert.ThrowsException<InvalidOperationException>(() => worker.Invoke(LongWait));
+                Assert.ThrowsExactly<InvalidOperationException>(() => worker.Invoke(LongWait));
                 Assert.IsFalse(FifoWorker.IsWorkerInternalMethod(null));
                 Assert.IsFalse(FifoWorker.IsWorkerInternalMethod(typeof(TestFifoTaskScheduler).GetMethod(nameof(Worker))));
                 Assert.IsTrue(FifoWorker.IsWorkerInternalMethod(typeof(FifoWorker).GetMethod("Invoke", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)));
                 Assert.IsTrue(FifoWorker.IsWorkerInternalMethod(typeof(FifoWorker).GetMethod("WorkerFunc", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)));
                 worker.Stop();
-                Assert.ThrowsException<InvalidOperationException>(() => worker.Invoke(null!));
+                Assert.ThrowsExactly<InvalidOperationException>(() => worker.Invoke(null!));
             }
             finally
             {
                 scheduler?.Dispose();
             }
-            Assert.ThrowsException<ObjectDisposedException>(() => scheduler.Run(() => { }));
-            Assert.ThrowsException<ObjectDisposedException>(() => scheduler.FireAndForget(() => { }));
-            await Assert.ThrowsExceptionAsync<ObjectDisposedException>(() => scheduler.Run(() => new ValueTask()));
+            Assert.ThrowsExactly<ObjectDisposedException>(() => scheduler.Run(() => { }));
+            Assert.ThrowsExactly<ObjectDisposedException>(() => scheduler.FireAndForget(() => { }));
+            await Assert.ThrowsExactlyAsync<ObjectDisposedException>(() => scheduler.Run(() => new ValueTask()));
         }
         public void LongWait()
         {

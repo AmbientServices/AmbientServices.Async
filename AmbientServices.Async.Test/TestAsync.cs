@@ -47,60 +47,60 @@ namespace AmbientServices.Test
         /// <summary>
         /// Performs basic tests on the <see cref="Async"/> class.
         /// </summary>
-        [TestMethod, ExpectedException(typeof(ExpectedException))]
+        [TestMethod]
         public void Async_AggregateExceptionUnwrap()
         {
-            Async.RunTaskSync(() => throw new AggregateException(new ExpectedException(nameof(Async_AggregateExceptionUnwrap))));
+            Assert.ThrowsExactly<ExpectedException>(() => Async.RunTaskSync(() => throw new AggregateException(new ExpectedException(nameof(Async_AggregateExceptionUnwrap)))));
         }
         /// <summary>
         /// Performs basic tests on the <see cref="Async"/> class.
         /// </summary>
-        [TestMethod, ExpectedException(typeof(ExpectedException))]
+        [TestMethod]
         public void Async_AggregateExceptionUnwrapWithTask()
         {
-            Async.RunTaskSync(async () => { await Task.Delay(10); throw new AggregateException(new ExpectedException(nameof(Async_AggregateExceptionUnwrapWithTask))); });
+            Assert.ThrowsExactly<ExpectedException>(() => Async.RunTaskSync(async () => { await Task.Delay(10); throw new AggregateException(new ExpectedException(nameof(Async_AggregateExceptionUnwrapWithTask))); }));
         }
         /// <summary>
         /// Performs basic tests on the <see cref="Async"/> class.
         /// </summary>
-        [TestMethod, ExpectedException(typeof(ExpectedException))]
+        [TestMethod]
         public void Async_AggregateExceptionUnwrapWithReturn()
         {
             Assert.AreNotEqual(Async.DefaultAsyncContext, Async.SinglethreadedContext);
-            int result = Async.RunTaskSync(async () =>
+            Assert.ThrowsExactly<ExpectedException>(() => Async.RunTaskSync(async () =>
             {
                 await Task.Delay(10);
                 return await Async_BasicAsyncThrow(new AggregateException(new ExpectedException(nameof(Async_AggregateExceptionUnwrapWithReturn))));
-            });
+            }));
         }
         /// <summary>
         /// Performs basic tests on the <see cref="Async"/> class.
         /// </summary>
-        [TestMethod, ExpectedException(typeof(AggregateException))]
+        [TestMethod]
         public void Async_AggregateExceptionCantUnwrap()
         {
-            Async.RunTaskSync(() => throw new AggregateException(new ExpectedException(nameof(Async_AggregateExceptionCantUnwrap)), new ExpectedException(nameof(Async_AggregateExceptionCantUnwrap))));
+            Assert.ThrowsExactly<AggregateException>(() => Async.RunTaskSync(() => throw new AggregateException(new ExpectedException(nameof(Async_AggregateExceptionCantUnwrap)), new ExpectedException(nameof(Async_AggregateExceptionCantUnwrap)))));
         }
         /// <summary>
         /// Performs basic tests on the <see cref="Async"/> class.
         /// </summary>
-        [TestMethod, ExpectedException(typeof(AggregateException))]
+        [TestMethod]
         public void Async_AggregateExceptionCantUnwrapWithTask()
         {
-            Async.RunTaskSync(async () => { await Task.Delay(10); throw new AggregateException(new ExpectedException(nameof(Async_AggregateExceptionCantUnwrapWithTask)), new ExpectedException(nameof(Async_AggregateExceptionCantUnwrapWithTask))); });
+            Assert.ThrowsExactly<AggregateException>(() => Async.RunTaskSync(async () => { await Task.Delay(10); throw new AggregateException(new ExpectedException(nameof(Async_AggregateExceptionCantUnwrapWithTask)), new ExpectedException(nameof(Async_AggregateExceptionCantUnwrapWithTask))); }));
         }
         /// <summary>
         /// Performs basic tests on the <see cref="Async"/> class.
         /// </summary>
-        [TestMethod, ExpectedException(typeof(AggregateException))]
+        [TestMethod]
         public void Async_AggregateExceptionCantUnwrapWithReturn()
         {
             Assert.AreNotEqual(Async.DefaultAsyncContext, Async.SinglethreadedContext);
-            int result = Async.RunTaskSync(async () =>
+            Assert.ThrowsExactly<AggregateException>(() => Async.RunTaskSync(async () =>
             {
                 await Task.Delay(10);
                 return await Async_BasicAsyncThrow(new AggregateException(new ExpectedException(nameof(Async_AggregateExceptionUnwrapWithReturn)), new ExpectedException(nameof(Async_AggregateExceptionUnwrapWithReturn))));
-            });
+            }));
         }
         /// <summary>
         /// Performs basic tests on the <see cref="Async"/> class.
@@ -750,14 +750,14 @@ namespace AmbientServices.Test
         public async Task Async_AsyncEnumeratorExceptions()
         {
             int mainThreadId = Thread.CurrentThread.ManagedThreadId;
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(async () =>
+            await Assert.ThrowsExactlyAsync<ArgumentNullException>(async () =>
             {
                 await foreach (int ret in ((int[])null!).ToAsyncEnumerable())
                 {
                     Assert.Fail("Should be empty!");
                 }
             });
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(async () =>
+            await Assert.ThrowsExactlyAsync<ArgumentNullException>(async () =>
             {
                 await foreach (int ret in ((IEnumerator<int>)null!).ToAsyncEnumerable())
                 {
@@ -794,14 +794,14 @@ namespace AmbientServices.Test
         public void SynchronousSynchronizationContextExceptions()
         {
             SynchronousSynchronizationContext c = SynchronousSynchronizationContext.Default;
-            Assert.ThrowsException<ArgumentNullException>(() => c.Send(null!, null));
-            Assert.ThrowsException<ArgumentNullException>(() => c.Post(null!, null));
+            Assert.ThrowsExactly<ArgumentNullException>(() => c.Send(null!, null));
+            Assert.ThrowsExactly<ArgumentNullException>(() => c.Post(null!, null));
         }
         [TestMethod]
         public void Async_ArgumentNullExceptions()
         {
-            Assert.ThrowsException<ArgumentNullException>(() => Async.ConvertAggregateException(null!));
-            Assert.ThrowsException<ArgumentNullException>(() =>
+            Assert.ThrowsExactly<ArgumentNullException>(() => Async.ConvertAggregateException(null!));
+            Assert.ThrowsExactly<ArgumentNullException>(() =>
             {
                 foreach (var x in Async.AsyncEnumerableToEnumerable<IAsyncEnumerable<int>>(null!))
                 {
@@ -812,10 +812,10 @@ namespace AmbientServices.Test
         [TestMethod]
         public async Task Async_ArgumentNullExceptionsAsync()
         {
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(async () => await Async.AwaitForEach<int>(null!, n => { }));
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(async () => await Async.AwaitForEach<int>(1.ToSingleItemAsyncEnumerable(), (Action<int>)null!));
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(async () => await Async.AwaitForEach<int>(null!, (i, c) => new ValueTask()));
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(async () => await Async.AwaitForEach<int>(1.ToSingleItemAsyncEnumerable(), null!));
+            await Assert.ThrowsExactlyAsync<ArgumentNullException>(async () => await Async.AwaitForEach<int>(null!, n => { }));
+            await Assert.ThrowsExactlyAsync<ArgumentNullException>(async () => await Async.AwaitForEach<int>(1.ToSingleItemAsyncEnumerable(), (Action<int>)null!));
+            await Assert.ThrowsExactlyAsync<ArgumentNullException>(async () => await Async.AwaitForEach<int>(null!, (i, c) => new ValueTask()));
+            await Assert.ThrowsExactlyAsync<ArgumentNullException>(async () => await Async.AwaitForEach<int>(1.ToSingleItemAsyncEnumerable(), null!));
         }
 #endif
         [TestMethod]
@@ -835,10 +835,10 @@ namespace AmbientServices.Test
         [TestMethod]
         public async Task ArgumentNullExceptions()
         {
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => Async.RunTask(null!));
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => Async.RunTask<int>(null!));
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => Async.Run(null!).AsTask());
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => Async.Run<int>(null!).AsTask());
+            await Assert.ThrowsExactlyAsync<ArgumentNullException>(() => Async.RunTask(null!));
+            await Assert.ThrowsExactlyAsync<ArgumentNullException>(() => Async.RunTask<int>(null!));
+            await Assert.ThrowsExactlyAsync<ArgumentNullException>(() => Async.Run(null!).AsTask());
+            await Assert.ThrowsExactlyAsync<ArgumentNullException>(() => Async.Run<int>(null!).AsTask());
         }
     }
 }
