@@ -191,36 +191,6 @@
             A static class to hold extensions to IAsyncEnumerable.
             </summary>
         </member>
-        <member name="M:AmbientServices.IAsyncEnumerableExtensions.ToListAsync``1(System.Collections.Generic.IAsyncEnumerable{``0},System.Threading.CancellationToken)">
-            <summary>
-            Asynchronously converts an <see cref="T:System.Collections.Generic.IAsyncEnumerator`1"/> into a list.
-            Note that since it returns a list, this function does NOT work with inifinite (or even very large) enumerations.
-            </summary>
-            <typeparam name="T">The type within the list.</typeparam>
-            <param name="ae">The <see cref="T:System.Collections.Generic.IAsyncEnumerator`1"/>.</param>
-            <param name="cancel">A <see cref="T:System.Threading.CancellationToken"/> the caller can use to cancel the operation before it completes.</param>
-            <returns>A <see cref="T:System.Collections.Generic.List`1"/> containing all the items in the async enumerator.</returns>
-        </member>
-        <member name="M:AmbientServices.IAsyncEnumerableExtensions.ToArrayAsync``1(System.Collections.Generic.IAsyncEnumerable{``0},System.Threading.CancellationToken)">
-            <summary>
-            Asynchronously converts an <see cref="T:System.Collections.Generic.IAsyncEnumerable`1"/> into an array.
-            Note that since it returns a array, this function does NOT work with inifinite (or even very large) enumerations.
-            </summary>
-            <typeparam name="T">The type within the list.</typeparam>
-            <param name="ae">The <see cref="T:System.Collections.Generic.IAsyncEnumerable`1"/>.</param>
-            <param name="cancel">A <see cref="T:System.Threading.CancellationToken"/> the caller can use to cancel the operation before it completes.</param>
-            <returns>An array containing all the items in the async enumerator.</returns>
-        </member>
-        <member name="M:AmbientServices.IAsyncEnumerableExtensions.ToEnumerableAsync``1(System.Collections.Generic.IAsyncEnumerable{``0},System.Threading.CancellationToken)">
-            <summary>
-            Asynchronously converts an <see cref="T:System.Collections.Generic.IAsyncEnumerable`1"/> into an <see cref="T:System.Collections.Generic.IEnumerable`1"/>.
-            Note that since it returns a array, this function does NOT work with inifinite (or even very large) enumerations.
-            </summary>
-            <typeparam name="T">The type within the list.</typeparam>
-            <param name="ae">The <see cref="T:System.Collections.Generic.IAsyncEnumerable`1"/>.</param>
-            <param name="cancel">A <see cref="T:System.Threading.CancellationToken"/> the caller can use to cancel the operation before it completes.</param>
-            <returns>An enumeration of all the items in the async enumerator.</returns>
-        </member>
         <member name="M:AmbientServices.IAsyncEnumerableExtensions.ToSingleItemAsyncEnumerable``1(``0)">
             <summary>
             Converts a single item to an enumerable.
@@ -231,7 +201,7 @@
         </member>
         <member name="T:AmbientServices.IAsyncEnumeratorExtensions">
             <summary>
-            A static class to hold extensions to IAsyncEnumerable.
+            A static class to hold extensions to IAsyncEnumerator.
             </summary>
         </member>
         <member name="M:AmbientServices.IAsyncEnumeratorExtensions.ToListAsync``1(System.Collections.Generic.IAsyncEnumerator{``0},System.Threading.CancellationToken)">
@@ -328,40 +298,6 @@
             Creates a "copy" of this <see cref="T:AmbientServices.SynchronousSynchronizationContext"/>, which in this case just returns the singleton instance because there is nothing held in memory anyway.
             </summary>
             <returns>The same singleton <see cref="T:AmbientServices.SynchronousSynchronizationContext"/> on which we were called.</returns>
-        </member>
-        <member name="T:AmbientServices.Utilities.IMockCpuUsage">
-            <summary>
-            An interface that can be used to mock recent CPU usage so that code branches depending on CPU utilization can be tested.
-            </summary>
-        </member>
-        <member name="P:AmbientServices.Utilities.IMockCpuUsage.RecentUsage">
-            <summary>
-            Gets the value to use as the most recent CPU usage, which should be a number between 0.0 and 1.0.
-            </summary>
-        </member>
-        <member name="T:AmbientServices.Utilities.CpuMonitor">
-            <summary>
-            A class that monitors process CPU utilization.
-            </summary>
-        </member>
-        <member name="M:AmbientServices.Utilities.CpuMonitor.#ctor(System.Int64,AmbientServices.Utilities.IMockCpuUsage)">
-            <summary>
-            Constructs a system CPU usage monitor.
-            </summary>
-            <param name="windowMilliseconds">The minimum number of milliseconds to wait before computing a new usage metric (more frequent queries will return the same value).</param>
-            <param name="mock">A <see cref="T:AmbientServices.Utilities.IMockCpuUsage"/> to use for the CPU utilization rather than the actual CPU utilization.</param>
-        </member>
-        <member name="M:AmbientServices.Utilities.CpuMonitor.#ctor(System.TimeSpan,AmbientServices.Utilities.IMockCpuUsage)">
-            <summary>
-            Constructs a system CPU usage monitor.
-            </summary>
-            <param name="windowSize">A <see cref="T:System.TimeSpan"/> indicating the minimum sampling window size.</param>
-            <param name="mock">A <see cref="T:AmbientServices.Utilities.IMockCpuUsage"/> to use for the CPU utilization rather than the actual CPU utilization.</param>
-        </member>
-        <member name="P:AmbientServices.Utilities.CpuMonitor.RecentUsage">
-            <summary>
-            Gets the proportion of time the CPU was in use (average across all CPUs) in the previous measurement window, which will be at least the minimum window specified in the constructor.
-            </summary>
         </member>
         <member name="T:AmbientServices.FifoTaskFactory">
             <summary>
