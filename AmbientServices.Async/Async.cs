@@ -447,11 +447,11 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
             finally { if (e != null) await Run(() => e.DisposeAsync()); }
         }
 #endif
-        }
-        /// <summary>
-        /// A static class to hold extensions to IEnumerable.
-        /// </summary>
-        public static class IEnumerableExtensions
+    }
+    /// <summary>
+    /// A static class to hold extensions to IEnumerable.
+    /// </summary>
+    public static class IEnumerableExtensions
     {
         /// <summary>
         /// Converts a single item to an enumerable.
@@ -486,11 +486,11 @@ System.Diagnostics.Debug.WriteLine("AsyncEnumerableToEnumerable funcAsyncEnumera
             await Task.CompletedTask;
         }
 #endif
-        }
-        /// <summary>
-        /// A static class to hold extensions to IEnumerable.
-        /// </summary>
-        public static class IEnumeratorExtensions
+    }
+    /// <summary>
+    /// A static class to hold extensions to IEnumerable.
+    /// </summary>
+    public static class IEnumeratorExtensions
     {
 #if NETSTANDARD2_1 || NETCOREAPP3_1_OR_GREATER || NET5_0_OR_GREATER
         /// <summary>
