@@ -36,7 +36,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-    <PackageReference Include="AmbientServices" Version="0.8.258" />
+    <PackageReference Include="AmbientServices" Version="0.8.259" />
   </ItemGroup>
 
 </Project>
