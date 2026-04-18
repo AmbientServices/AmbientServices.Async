@@ -17,7 +17,7 @@
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<PackageTags></PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageOutputPath>\\192.168.13.99\Code\NuGet\</PackageOutputPath>
+		<!--<PackageOutputPath>\\192.168.13.99\Code\NuGet\</PackageOutputPath>-->
 		<PackageProjectUrl>https://github.com/AmbientServices/AmbientServices.Async</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/AmbientServices/AmbientServices.Async</RepositoryUrl>
 		<AnalysisLevel>latest</AnalysisLevel>
