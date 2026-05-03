@@ -20,9 +20,16 @@ if errorlevel 1 (
   if errorlevel 1 goto :fail
 )
 
+if exist coveragereport\badge_linecoverage.svg (
+  echo Updating assets\badge_linecoverage.svg for NuGet package readme...
+  if not exist assets mkdir assets
+  copy /y coveragereport\badge_linecoverage.svg assets\badge_linecoverage.svg >nul
+)
+
 echo.
 echo Output: coverage.cobertura.xml
 if exist coveragereport\index.html echo HTML:  coveragereport\index.html
+if exist assets\badge_linecoverage.svg echo Badge: assets\badge_linecoverage.svg
 popd
 exit /b 0
 

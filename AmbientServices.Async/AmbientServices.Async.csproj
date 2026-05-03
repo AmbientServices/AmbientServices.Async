@@ -33,6 +33,7 @@
 	<ItemGroup>
 		<None Include="..\.editorconfig" Link=".editorconfig" />
 		<None Include="..\README.md" Pack="true" PackagePath="\" />
+		<None Include="..\assets\badge_linecoverage.svg" Pack="true" PackagePath="assets/badge_linecoverage.svg" />
 	</ItemGroup>
 
 	<ItemGroup>
