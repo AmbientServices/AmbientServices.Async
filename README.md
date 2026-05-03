@@ -1,4 +1,8 @@
 # Overview
+
+[![Tests](https://img.shields.io/github/actions/workflow/status/AmbientServices/AmbientServices.Async/Build.yml?branch=master&label=tests)](https://github.com/AmbientServices/AmbientServices.Async/actions/workflows/Build.yml?query=branch%3Amaster)
+[![Line coverage](https://ambientservices.github.io/AmbientServices.Async/badge_linecoverage.svg)](https://ambientservices.github.io/AmbientServices.Async/)
+
 AmbientServices.Async is a .NET library that provides tools for migrating even the largest, most challenging and performance-critical projects from non async/TPL code to modern .NET core async/await.
 
 ## Async
@@ -475,11 +479,25 @@ AmbientServices.Async is written and maintained by James Ivie.
 AmbientServices.Async is licensed under [MIT](https://opensource.org/licenses/MIT).
 
 ## Language and Tools
-AmbientServices.Async is written in C#, targeting .NET Standard 2.0, .NET 8.0-9.0.  Unit tests are written in .NET 9.0.
+AmbientServices.Async is written in C#, targeting .NET Standard 2.0 and .NET 8.0–10.0. Unit tests target .NET 9.0 and 10.0.
 
-The code can be built using either Microsoft Visual Studio 2022+, Microsoft Visual Studio Code, or .NET Core command-line utilities.
+The code can be built using Microsoft Visual Studio 2022 or later (including Visual Studio 2026), Visual Studio Code, or the .NET SDK command line.
 
 Binaries are available at https://www.nuget.org/packages/AmbientServices.Async.
+
+## Code coverage
+Unit test projects reference **Microsoft.CodeCoverage** (not Coverlet). In Visual Studio 2026 you can use **Test → Analyze Code Coverage for All Tests** without extra collectors.
+
+From the repository root, command-line coverage matches CI. On Windows you can run **`coverage.bat`** (same steps: test, `dotnet-coverage` merge, optional ReportGenerator if `reportgenerator` is on your PATH).
+
+```bat
+dotnet test AmbientServices.Async.Test -c Release -f net10.0 --collect:"Code Coverage" --settings codecoverage.runsettings
+dotnet-coverage merge "**/TestResults/**/*.coverage" -f cobertura -o coverage.cobertura.xml
+```
+
+Install the [dotnet-coverage](https://learn.microsoft.com/dotnet/core/additional-tools/dotnet-coverage) global tool once: `dotnet tool install --global dotnet-coverage`. Optional HTML reports: install [ReportGenerator](https://github.com/danielpalme/ReportGenerator) and run it on `coverage.cobertura.xml`.
+
+On GitHub Actions, the HTML report and SVG badges are generated with ReportGenerator and deployed to the repository’s **gh-pages** branch. Enable **Pages** in the repo settings with source **Deploy from a branch** → **gh-pages** / **/(root)** so the site and badges are served from `https://ambientservices.github.io/AmbientServices.Async/`.
 
 ## Contributions
 Contributions are welcome under the following conditions:
@@ -488,6 +506,3 @@ Contributions are welcome under the following conditions:
 3. code coverage by unit tests cover all new lines and conditions whenever possible
 4. documentation (both inline and here) is updated appropriately
 5. style for code and documentation contributions remains consistent
-
-## Status
-[![.NET](https://github.com/AmbientServices/AmbientServices.Async/actions/workflows/dotnet.yml/badge.svg)](https://github.com/AmbientServices/AmbientServices.Async/actions/workflows/dotnet.yml)

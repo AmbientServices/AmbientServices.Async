@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Microsoft.CodeCoverage: disable native instrumentation when the solution has no C++ (faster, more reliable on Linux CI). -->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="Code Coverage">
+        <Configuration>
+          <EnableStaticNativeInstrumentation>False</EnableStaticNativeInstrumentation>
+          <EnableDynamicNativeInstrumentation>False</EnableDynamicNativeInstrumentation>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

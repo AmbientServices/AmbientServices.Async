@@ -158,7 +158,7 @@ $RECYCLE.BIN/
 *.coveragexml
 *.coverage
 /opencover.results.xml
-/coverage.bat
 /.vs
 /coveragereport
+/coverage.cobertura.xml
 /AmbientServices/AmbientServices.xml

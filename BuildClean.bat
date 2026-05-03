@@ -1,3 +1,5 @@
+@echo off
+rem Cleans build outputs, NuGet detritus, and TestResults (including Microsoft Code Coverage .coverage files).
 rd .vs /s /q
 for %%p in (AmbientServices.Async AmbientServices.Async.Samples AmbientServices.Async.Test) do for %%f in (obj bin\Debug bin\Release) do rd %%p\%%f /s /q
 for %%p in (AmbientServices.Async AmbientServices.Async.Samples AmbientServices.Async.Test) do del %%p\packages.config /q
