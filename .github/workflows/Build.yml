@@ -5,7 +5,9 @@ on:
     branches: [ master ]
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   build:
@@ -73,10 +75,28 @@ jobs:
       run: dotnet test -c Release -f net9.0 --blame-hang-timeout 120s
     - name: Publish
       run: dotnet nuget push AmbientServices.Async/bin/Release/AmbientServices.Async.0.1.${{ github.run_number }}.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
-    - name: Deploy coverage HTML to GitHub Pages
-      if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-      uses: peaceiris/actions-gh-pages@v4
+
+  deploy-pages:
+    needs: build
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+    - name: Download coverage report
+      uses: actions/download-artifact@v7
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./coveragereport
-        force_orphan: true
+        name: CoverageReport
+        path: coveragereport
+    - name: Configure GitHub Pages
+      uses: actions/configure-pages@v5
+    - name: Upload Pages artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: coveragereport
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4

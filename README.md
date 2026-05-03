@@ -481,23 +481,9 @@ AmbientServices.Async is licensed under [MIT](https://opensource.org/licenses/MI
 ## Language and Tools
 AmbientServices.Async is written in C#, targeting .NET Standard 2.0 and .NET 8.0–10.0. Unit tests target .NET 9.0 and 10.0.
 
-The code can be built using Microsoft Visual Studio 2022 or later (including Visual Studio 2026), Visual Studio Code, or the .NET SDK command line.
+The code can be built using Microsoft Visual Studio 2026 or later, Visual Studio Code, or the .NET SDK command line.
 
 Binaries are available at https://www.nuget.org/packages/AmbientServices.Async.
-
-## Code coverage
-Unit test projects reference **Microsoft.CodeCoverage** (not Coverlet). In Visual Studio 2026 you can use **Test → Analyze Code Coverage for All Tests** without extra collectors.
-
-From the repository root, command-line coverage matches CI. On Windows you can run **`coverage.bat`** (same steps: test, `dotnet-coverage` merge, optional ReportGenerator if `reportgenerator` is on your PATH).
-
-```bat
-dotnet test AmbientServices.Async.Test -c Release -f net10.0 --collect:"Code Coverage" --settings codecoverage.runsettings
-dotnet-coverage merge "**/TestResults/**/*.coverage" -f cobertura -o coverage.cobertura.xml
-```
-
-Install the [dotnet-coverage](https://learn.microsoft.com/dotnet/core/additional-tools/dotnet-coverage) global tool once: `dotnet tool install --global dotnet-coverage`. Optional HTML reports: install [ReportGenerator](https://github.com/danielpalme/ReportGenerator) and run it on `coverage.cobertura.xml`.
-
-On GitHub Actions, the HTML report and SVG badges are generated with ReportGenerator and deployed to the repository’s **gh-pages** branch. Enable **Pages** in the repo settings with source **Deploy from a branch** → **gh-pages** / **/(root)** so the site and badges are served from `https://ambientservices.github.io/AmbientServices.Async/`.
 
 ## Contributions
 Contributions are welcome under the following conditions:
