@@ -16,6 +16,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
     - name: Setup .NET 8.0
       uses: actions/setup-dotnet@v5
       with:
@@ -65,21 +67,34 @@ jobs:
         customSettings: ''
         toolpath: 'reportgeneratortool'
     - name: Stage coverage badge for NuGet package readme
-      run: mkdir -p assets && cp coveragereport/badge_linecoverage.svg assets/badge_linecoverage.svg
+      run: |
+        mkdir -p docs
+        PERCENT=$(grep -oE '[0-9]+(\.[0-9]+)?%' coveragereport/badge_shieldsio_linecoverage_green.svg | head -1)
+        test -n "$PERCENT" || (echo "Could not read line coverage percent from ReportGenerator output." && exit 1)
+        sed "s|__PERCENT__|${PERCENT}|g" docs/line-coverage.template.svg > docs/line-coverage.svg
     - name: Commit coverage badge to repo
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git add assets/badge_linecoverage.svg
+        git add docs/line-coverage.svg
         if git diff --staged --quiet; then
-          echo "Coverage badge unchanged"
+          echo "Line coverage badge unchanged."
         else
-          git commit -m "Update coverage badge [skip ci]"
-          # Build steps leave modified/untracked files; rebase needs a clean tree
-          git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
-          git push
+          git commit -m "Update docs/line-coverage.svg [skip ci]"
+          BRANCH="${{ github.ref_name }}"
+          for attempt in 1 2 3 4 5 6; do
+            git fetch origin "$BRANCH"
+            git rebase "origin/${BRANCH}"
+            if git push origin "HEAD:${BRANCH}"; then
+              exit 0
+            fi
+            echo "Push rejected (attempt ${attempt}); rebasing again after race..."
+            sleep $((attempt * 3))
+          done
+          echo "Could not push badge update after retries."
+          exit 1
         fi
-    - name: Pack NuGet (readme embeds assets/badge_linecoverage.svg)
+    - name: Pack NuGet (readme embeds docs/line-coverage.svg)
       run: dotnet pack AmbientServices.Async -c Release
     - name: Upload coverage report artifact
       uses: actions/upload-artifact@v7

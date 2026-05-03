@@ -33,11 +33,11 @@
 	<ItemGroup>
 		<None Include="..\.editorconfig" Link=".editorconfig" />
 		<None Include="..\README.md" Pack="true" PackagePath="\" />
-		<None Include="..\assets\badge_linecoverage.svg" Pack="true" PackagePath="assets/badge_linecoverage.svg" />
+		<None Include="..\docs\line-coverage.svg" Pack="true" PackagePath="docs/line-coverage.svg" />
 	</ItemGroup>
 
 	<ItemGroup>
-    <PackageReference Include="AmbientServices" Version="0.9.284" />
+    <PackageReference Include="AmbientServices" Version="0.9.285" />
   </ItemGroup>
 
 </Project>

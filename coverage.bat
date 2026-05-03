@@ -20,16 +20,23 @@ if errorlevel 1 (
   if errorlevel 1 goto :fail
 )
 
-if exist coveragereport\badge_linecoverage.svg (
-  echo Updating assets\badge_linecoverage.svg for NuGet package readme...
-  if not exist assets mkdir assets
-  copy /y coveragereport\badge_linecoverage.svg assets\badge_linecoverage.svg >nul
+if exist coveragereport\badge_shieldsio_linecoverage_green.svg (
+  echo Updating docs\line-coverage.svg from docs\line-coverage.template.svg...
+  if not exist docs mkdir docs
+  powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+    "$raw = Get-Content 'coveragereport\badge_shieldsio_linecoverage_green.svg' -Raw; ^
+     $m = [regex]::Match($raw, '[0-9]+(\.[0-9]+)?%%'); ^
+     if (-not $m.Success) { exit 1 }; ^
+     $p = $m.Value; ^
+     $t = Get-Content 'docs\line-coverage.template.svg' -Raw; ^
+     $t -replace '__PERCENT__', $p | Set-Content 'docs\line-coverage.svg' -NoNewline"
+  if errorlevel 1 echo Warning: could not refresh docs\line-coverage.svg from template.
 )
 
 echo.
 echo Output: coverage.cobertura.xml
 if exist coveragereport\index.html echo HTML:  coveragereport\index.html
-if exist assets\badge_linecoverage.svg echo Badge: assets\badge_linecoverage.svg
+if exist docs\line-coverage.svg echo Badge: docs\line-coverage.svg
 popd
 exit /b 0
 

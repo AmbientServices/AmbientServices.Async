@@ -1,7 +1,7 @@
 # Overview
 
-[![Build and Test](https://github.com/AmbientServices/AmbientServices.Async/actions/workflows/Build.yml/badge.svg)](https://github.com/AmbientServices/AmbientServices.Async/actions/workflows/Build.yml)
-[![Line coverage](assets/badge_linecoverage.svg)](https://ambientservices.github.io/AmbientServices.Async/)
+[![Build and Test](https://github.com/AmbientServices/AmbientServices.Async/actions/workflows/Build.yml/badge.svg?branch=master&event=push)](https://github.com/AmbientServices/AmbientServices.Async/actions/workflows/Build.yml)
+[![Line coverage](https://raw.githubusercontent.com/AmbientServices/AmbientServices.Async/master/docs/line-coverage.svg)](https://ambientservices.github.io/AmbientServices.Async/)
 
 
 AmbientServices.Async is a .NET library that provides tools for migrating even the largest, most challenging and performance-critical projects from non async/TPL code to modern .NET core async/await.
