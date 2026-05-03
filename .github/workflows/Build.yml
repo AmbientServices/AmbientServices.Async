@@ -75,7 +75,8 @@ jobs:
           echo "Coverage badge unchanged"
         else
           git commit -m "Update coverage badge [skip ci]"
-          git pull --rebase origin "${GITHUB_REF_NAME}"
+          # Build steps leave modified/untracked files; rebase needs a clean tree
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
           git push
         fi
     - name: Pack NuGet (readme embeds assets/badge_linecoverage.svg)
