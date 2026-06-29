@@ -101,8 +101,14 @@ jobs:
         path: coveragereport
     - name: Test .NET 9.0
       run: dotnet test -c Release -f net9.0 --blame-hang-timeout 120s
+    # Exchange the GitHub OIDC token for a short-lived NuGet API key (valid 1 hour); must run shortly before the push.
+    - name: NuGet login (OIDC -> temporary API key)
+      uses: NuGet/login@v1
+      id: nuget-login
+      with:
+        user: ${{ secrets.NUGET_USER }}  # nuget.org profile/username (NOT email); must match the Trusted Publishing policy owner
     - name: Publish
-      run: dotnet nuget push AmbientServices.Async/bin/Release/AmbientServices.Async.0.1.${{ github.run_number }}.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
+      run: dotnet nuget push AmbientServices.Async/bin/Release/AmbientServices.Async.0.1.${{ github.run_number }}.nupkg -k ${{ steps.nuget-login.outputs.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
 
   deploy-pages:
     needs: build
