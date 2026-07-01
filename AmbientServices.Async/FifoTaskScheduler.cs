@@ -304,7 +304,7 @@ namespace AmbientServices
                             if (invokeTicks > maxInvokeTicks)
                             {
                                 maxInvokeTicks = invokeTicks;
-                                InterlockedUtilities.TryOptomisticMax(ref _SlowestInvocation, invokeTicks);
+                                InterlockedUtilities.TryOptimisticMax(ref _SlowestInvocation, invokeTicks);
                                 _scheduler.SchedulerSlowestInvocationMilliseconds?.SetValue(_SlowestInvocation * 1000 / FifoTaskScheduler.TicksPerSecond);
                             }
                             _scheduler.SchedulerInvocationTime?.AddRaw(invokeTicks);
@@ -643,7 +643,7 @@ namespace AmbientServices
             FifoWorker worker = FifoWorker.Start(this, ThreadName(id), _schedulerThreadPriority);
             Interlocked.Increment(ref _workers);
             // update the high water mark if needed
-            InterlockedUtilities.TryOptomisticMax(ref _workersHighWaterMark, _workers);
+            InterlockedUtilities.TryOptimisticMax(ref _workersHighWaterMark, _workers);
             SchedulerWorkersHighWaterMark?.SetValue(_workersHighWaterMark);
             return worker;
         }
@@ -1029,7 +1029,7 @@ namespace AmbientServices
             // we now have a worker that is busy
             Interlocked.Increment(ref _busyWorkers);
             // keep track of the maximum concurrent usage
-            InterlockedUtilities.TryOptomisticMax(ref _peakConcurrentUsageSinceLastRetirementCheck, _busyWorkers);
+            InterlockedUtilities.TryOptimisticMax(ref _peakConcurrentUsageSinceLastRetirementCheck, _busyWorkers);
             try
             {
                 action();
@@ -1055,7 +1055,7 @@ namespace AmbientServices
             // we now have a worker that is busy
             Interlocked.Increment(ref _busyWorkers);
             // keep track of the maximum concurrent usage
-            InterlockedUtilities.TryOptomisticMax(ref _peakConcurrentUsageSinceLastRetirementCheck, _busyWorkers);
+            InterlockedUtilities.TryOptimisticMax(ref _peakConcurrentUsageSinceLastRetirementCheck, _busyWorkers);
             try
             {
                 return await func(); // the whole point of this function is to execute the task in the high performance synchronization context
@@ -1076,7 +1076,7 @@ namespace AmbientServices
             // we now have a worker that is busy
             Interlocked.Increment(ref _busyWorkers);
             // keep track of the maximum concurrent usage
-            InterlockedUtilities.TryOptomisticMax(ref _peakConcurrentUsageSinceLastRetirementCheck, _busyWorkers);
+            InterlockedUtilities.TryOptimisticMax(ref _peakConcurrentUsageSinceLastRetirementCheck, _busyWorkers);
             try
             {
                 await func(); // the whole point of this function is to execute the task in the high performance synchronization context
