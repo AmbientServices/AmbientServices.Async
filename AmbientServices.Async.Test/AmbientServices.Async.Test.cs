@@ -21,6 +21,7 @@ namespace AmbientServices.Test
             System.Threading.Tasks.ValueTask t = TraceBuffer.Flush();
             t.GetAwaiter().GetResult();
             FifoTaskScheduler.Stop();
+            DisposeResponsibility.AssertNoUndisposedDisposeResponsibilityLeaksAfterFullGc();
         }
     }
 }
