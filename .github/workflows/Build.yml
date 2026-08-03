@@ -49,7 +49,7 @@ jobs:
     - name: Merge coverage to Cobertura (ReportGenerator)
       run: dotnet-coverage merge "**/TestResults/**/*.coverage" -f cobertura -o coverage.cobertura.xml
     - name: ReportGenerator
-      uses: danielpalme/ReportGenerator-GitHub-Action@5.5.10
+      uses: danielpalme/ReportGenerator-GitHub-Action@5.5.11
       with:
         reports: 'coverage.cobertura.xml'
         targetdir: 'coveragereport'
