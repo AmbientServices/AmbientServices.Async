@@ -21,6 +21,8 @@ namespace AmbientServices.Test
             System.Threading.Tasks.ValueTask t = TraceBuffer.Flush();
             t.GetAwaiter().GetResult();
             FifoTaskScheduler.Stop();
+            // leak-detail collection is off by default, and the leak verification refuses to run without it, so turn it on for this call
+            using IDisposable leakDetails = DisposeResponsibility.ScopedLeakDetailCollection();
             DisposeResponsibility.AssertNoUndisposedDisposeResponsibilityLeaksAfterFullGc();
         }
     }
