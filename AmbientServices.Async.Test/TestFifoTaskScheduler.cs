@@ -365,17 +365,17 @@ namespace AmbientServices.Test
 
             internal void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
             {
-                Assert.AreEqual(typeof(AggregateException), e.Exception?.GetType());
-                Assert.AreEqual(typeof(ExpectedException), e.Exception?.InnerExceptions[0].GetType());
-                if ((e.Exception?.InnerExceptions[0] as ExpectedException)?.TestName?.Contains(_unique.ToString()) ?? false) Interlocked.Increment(ref _unhandledExceptions);
+                // these events are static and tests run in parallel, so exceptions from other tests can arrive here--ignore anything that doesn't carry our unique test name (asserting inside this handler would crash the test host)
+                if ((e.Exception?.InnerExceptions.FirstOrDefault() as ExpectedException)?.TestName?.Contains(_unique.ToString()) != true) return;
+                Interlocked.Increment(ref _unhandledExceptions);
                 Interlocked.Increment(ref _taskSchedulerCount);
                 e.SetObserved();
             }
             internal void FifoTaskScheduler_UnhandledException(object? sender, UnobservedTaskExceptionEventArgs e)
             {
-                Assert.AreEqual(typeof(AggregateException), e.Exception?.GetType());
-                Assert.AreEqual(typeof(ExpectedException), e.Exception?.InnerExceptions[0].GetType());
-                if ((e.Exception?.InnerExceptions[0] as ExpectedException)?.TestName?.Contains(_unique.ToString()) ?? false) Interlocked.Increment(ref _unhandledExceptions);
+                // these events are static and tests run in parallel, so exceptions from other tests can arrive here--ignore anything that doesn't carry our unique test name (asserting inside this handler would crash the test host)
+                if ((e.Exception?.InnerExceptions.FirstOrDefault() as ExpectedException)?.TestName?.Contains(_unique.ToString()) != true) return;
+                Interlocked.Increment(ref _unhandledExceptions);
                 Interlocked.Increment(ref _fifoTaskSchedulerCount);
                 e.SetObserved();
             }
