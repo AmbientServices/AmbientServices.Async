@@ -164,7 +164,7 @@ namespace AmbientServices
         }
         private void Start()
         {
-            _thread.Start();
+            FifoTaskScheduler.StartWithoutExecutionContext(_thread);
             _scheduler.SchedulerWorkersCreated?.IncrementRaw();
         }
 #if DEBUG
@@ -574,7 +574,7 @@ namespace AmbientServices
             }
             _workersHighWaterMark = _readyWorkerList.Count;
             SchedulerWorkersHighWaterMark?.SetValue(_readyWorkerList.Count);
-            _schedulerMasterThread.Start();
+            StartWithoutExecutionContext(_schedulerMasterThread);
             Schedulers.Add(this);
         }
 
@@ -904,7 +904,9 @@ namespace AmbientServices
                 Debug.Assert(!worker.IsBusy);
             }
 
-            worker.Invoke(() => 
+            // capture the caller's execution context now, as Task.Run would: the task is created on the worker thread, which would otherwise give it that thread's context instead
+            ExecutionContext? callerContext = ExecutionContext.Capture();
+            worker.Invoke(() => RunInContext(callerContext, () =>
             {
                 _ = Task.Factory.StartNew(() => 
                 {
@@ -919,7 +921,7 @@ namespace AmbientServices
                         tcs.SetException(e);
                     }
                 }, CancellationToken.None, TaskCreationOptions.None, this);
-            });
+            }));
             return tcs.Task;
         }
         /// <summary>
@@ -959,7 +961,9 @@ namespace AmbientServices
             {
                 Debug.Assert(!worker.IsBusy);
             }
-            worker.Invoke(() => 
+            // capture the caller's execution context now, as Task.Run would: the task is created on the worker thread, which would otherwise give it that thread's context instead
+            ExecutionContext? callerContext = ExecutionContext.Capture();
+            worker.Invoke(() => RunInContext(callerContext, () =>
             {
                 _ = Task.Factory.StartNew(() => 
                 {
@@ -975,7 +979,7 @@ namespace AmbientServices
                         tcs.SetException(e);
                     }
                 }, CancellationToken.None, TaskCreationOptions.None, this);
-            });
+            }));
             return tcs.Task;
         }
         /// <summary>
@@ -1014,10 +1018,49 @@ namespace AmbientServices
             {
                 Debug.Assert(!worker.IsBusy);
             }
-            worker.Invoke(() =>
+            // capture the caller's execution context now, as Task.Run would: the task is created on the worker thread, which would otherwise give it that thread's context instead
+            ExecutionContext? callerContext = ExecutionContext.Capture();
+            worker.Invoke(() => RunInContext(callerContext, () =>
             {
                 _ = Task.Factory.StartNew(action, CancellationToken.None, TaskCreationOptions.None, this);
-            });
+            }));
+        }
+        /// <summary>
+        /// Starts a scheduler thread without the execution context of the code that happens to be starting it.
+        /// </summary>
+        /// <param name="thread">The <see cref="Thread"/> to start.</param>
+        /// <remarks>
+        /// <see cref="Thread.Start()"/> flows the current execution context, including every <see cref="AsyncLocal{T}"/> value, to the new thread,
+        /// and a scheduler thread lives on long after whatever created it.  Workers are often created inline by whatever call found none ready,
+        /// so each one would otherwise carry that caller's ambient state (a request's cache, say) into every unrelated delegate it later runs
+        /// without a context of its own.
+        /// </remarks>
+        internal static void StartWithoutExecutionContext(Thread thread)
+        {
+            if (ExecutionContext.IsFlowSuppressed())
+            {
+                thread.Start();
+                return;
+            }
+            using (ExecutionContext.SuppressFlow())
+            {
+                thread.Start();
+            }
+        }
+        /// <summary>
+        /// Runs <paramref name="action"/> in <paramref name="context"/>, or in the current context if it is null (which is what
+        /// <see cref="ExecutionContext.Capture"/> returns when the caller suppressed the flow).
+        /// </summary>
+        /// <param name="context">The <see cref="ExecutionContext"/> captured from the caller, or null.</param>
+        /// <param name="action">The <see cref="Action"/> to run.</param>
+        private static void RunInContext(ExecutionContext? context, Action action)
+        {
+            if (context is null)
+            {
+                action();
+                return;
+            }
+            ExecutionContext.Run(context, state => ((Action)state!)(), action);
         }
         /// <summary>
         /// Runs the specified action in the context of the high performance FIFO task scheduler.
