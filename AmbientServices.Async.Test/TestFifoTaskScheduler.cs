@@ -95,6 +95,57 @@ namespace AmbientServices.Test
             }
             FifoTaskScheduler.Default.Reset();
         }
+        private static readonly AsyncLocal<string?> CreatorValue = new();
+        [TestMethod]
+        public async Task WorkersDoNotInheritTheCreatorsContext()
+        {
+            // create the scheduler and its workers in a context where the async local is set (workers get created inline when none are ready)
+            FifoTaskScheduler scheduler = await Task.Run(async () =>
+            {
+                CreatorValue.Value = "creator";
+                FifoTaskScheduler created = FifoTaskScheduler.Start(nameof(WorkersDoNotInheritTheCreatorsContext), 1, 2, ThreadPriority.Highest);
+                List<Task<string?>> creatorTasks = new();
+                for (int i = 0; i < 10; ++i)
+                {
+                    creatorTasks.Add(created.Run(() => { Thread.Sleep(10); return CreatorValue.Value; }));
+                }
+                foreach (Task<string?> task in creatorTasks)
+                {
+                    Assert.AreEqual("creator", await task);
+                }
+                return created;
+            });
+            using (scheduler)
+            {
+                // work from a caller without the value doesn't see the value of the code that created the workers it lands on, whichever way it comes in
+                Assert.IsNull(CreatorValue.Value);
+                List<Task<string?>> funcTasks = new();
+                List<Task> actionTasks = new();
+                ConcurrentBag<string> seen = new();
+                using CountdownEvent fired = new(10);
+                for (int i = 0; i < 10; ++i)
+                {
+                    funcTasks.Add(scheduler.Run(() => { Thread.Sleep(10); return CreatorValue.Value; }));
+                    actionTasks.Add(scheduler.Run(() => { Thread.Sleep(10); seen.Add("action:" + CreatorValue.Value); }));
+                    scheduler.FireAndForget(() => { seen.Add("fireandforget:" + CreatorValue.Value); fired.Signal(); });
+                }
+                foreach (Task<string?> task in funcTasks)
+                {
+                    Assert.IsNull(await task);
+                }
+                await Task.WhenAll(actionTasks);
+                Assert.IsTrue(fired.Wait(10_000));
+                Assert.AreEqual(20, seen.Count);
+                Assert.IsTrue(seen.All(v => v.EndsWith(":", StringComparison.Ordinal)), string.Join(",", seen));
+                // and work from a caller with a different value sees the caller's value
+                CreatorValue.Value = "caller";
+                Assert.AreEqual("caller", await scheduler.Run(() => CreatorValue.Value));
+                string? seenByAction = null;
+                await scheduler.Run(() => { seenByAction = CreatorValue.Value; });
+                Assert.AreEqual("caller", seenByAction);
+                scheduler.Reset();
+            }
+        }
         [TestMethod]
         public async Task RunWithFunc()
         {
