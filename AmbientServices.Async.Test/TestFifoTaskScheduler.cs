@@ -107,7 +107,7 @@ namespace AmbientServices.Test
                 List<Task<string?>> creatorTasks = new();
                 for (int i = 0; i < 10; ++i)
                 {
-                    creatorTasks.Add(created.Run(() => { Thread.Sleep(10); return CreatorValue.Value; }));
+                    creatorTasks.Add(created.Run<string?>(() => { Thread.Sleep(10); return CreatorValue.Value; }));
                 }
                 foreach (Task<string?> task in creatorTasks)
                 {
