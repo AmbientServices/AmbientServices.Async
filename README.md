@@ -480,7 +480,7 @@ AmbientServices.Async is written and maintained by James Ivie.
 AmbientServices.Async is licensed under [MIT](https://opensource.org/licenses/MIT).
 
 ## Language and Tools
-AmbientServices.Async is written in C#, targeting .NET Standard 2.0 and .NET 8.0–10.0. Unit tests target .NET 9.0 and 10.0.
+AmbientServices.Async is written in C#, targeting .NET Standard 2.0 and .NET 8.0–11.0. Unit tests target .NET 9.0–11.0.
 
 The code can be built using Microsoft Visual Studio 2026 or later, Visual Studio Code, or the .NET SDK command line.
 
