@@ -523,6 +523,26 @@
             <param name="action">The action to run asynchronously.  May be an "async void" action.</param>
             <remarks>Note that exceptions throw from <paramref name="action"/> will be unobserved.</remarks>
         </member>
+        <member name="M:AmbientServices.FifoTaskScheduler.StartWithoutExecutionContext(System.Threading.Thread)">
+            <summary>
+            Starts a scheduler thread without the execution context of the code that happens to be starting it.
+            </summary>
+            <param name="thread">The <see cref="T:System.Threading.Thread"/> to start.</param>
+            <remarks>
+            <see cref="M:System.Threading.Thread.Start"/> flows the current execution context, including every <see cref="T:System.Threading.AsyncLocal`1"/> value, to the new thread,
+            and a scheduler thread lives on long after whatever created it.  Workers are often created inline by whatever call found none ready,
+            so each one would otherwise carry that caller's ambient state (a request's cache, say) into every unrelated delegate it later runs
+            without a context of its own.
+            </remarks>
+        </member>
+        <member name="M:AmbientServices.FifoTaskScheduler.RunInContext(System.Threading.ExecutionContext,System.Action)">
+            <summary>
+            Runs <paramref name="action"/> in <paramref name="context"/>, or in the current context if it is null (which is what
+            <see cref="M:System.Threading.ExecutionContext.Capture"/> returns when the caller suppressed the flow).
+            </summary>
+            <param name="context">The <see cref="T:System.Threading.ExecutionContext"/> captured from the caller, or null.</param>
+            <param name="action">The <see cref="T:System.Action"/> to run.</param>
+        </member>
         <member name="M:AmbientServices.FifoTaskScheduler.ExecuteAction(System.Action)">
             <summary>
             Runs the specified action in the context of the high performance FIFO task scheduler.
